@@ -1,0 +1,68 @@
+# CREDITS
+
+## 音
+
+- snd/knock_a.mp3: File:Knock on door.wav / Asud12 / CC0
+- snd/knock_b.mp3: File:Knocking on wood or door.ogg / stephan / Public domain
+- snd/knock_c.mp3: File:Door knocker audio.ogg / Mx. Granger / CC0
+- snd/step1.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/step2.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/step3.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/step4.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/heavy1.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/heavy2.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/heavy3.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/dish1.mp3: 100 CC0 SFX / rubberduck / CC0
+- snd/dish2.mp3: 100 CC0 SFX / rubberduck / CC0
+- snd/cloth1.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/cloth2.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/cloth3.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/creak1.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/creak2.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/creak3.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/rattle1.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/rattle2.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/rattle3.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/rattle4.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/dopen1.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/dopen2.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/dclose1.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/dclose2.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/slam.mp3: 100 CC0 SFX / rubberduck / CC0
+- snd/key1.mp3: 100 CC0 SFX / rubberduck / CC0
+- snd/key2.mp3: 100 CC0 SFX / rubberduck / CC0
+- snd/unlock.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/jingle.mp3: 50 RPG sound effects / Kenney / CC0
+- snd/clank1.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/clank2.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/clank3.mp3: 100 CC0 SFX / rubberduck / CC0
+- snd/meow1.mp3: Cat Purr & Meow / Kerzoven / CC0
+- snd/meow2.mp3: Cat Purr & Meow / Kerzoven / CC0
+- snd/meow3.mp3: Cat Purr & Meow / Kerzoven / CC0
+- snd/grunt1.mp3: Little Grunts / crueltyinc / CC0
+- snd/grunt2.mp3: Little Grunts / crueltyinc / CC0
+- snd/grunt3.mp3: Little Grunts / crueltyinc / CC0
+- snd/click.mp3: Interface Sounds / Kenney / CC0
+- snd/page.mp3: 10 Book Page Flips / StarNinjas / CC0
+- snd/rooster.mp3: File:Medium rooster crowing.ogg / alys / Public domain
+- snd/tick.mp3: File:Clock ticking.ogg / natalie / Public domain
+- snd/amb_night.mp3: Crickets Ambient Noise - loopable / Wolfgang_ / CC0
+- snd/amb_room.mp3: 100 CC0 SFX #2 / rubberduck / CC0
+- snd/j_win.mp3: 85 Short music jingles / Kenney / CC0
+- snd/j_lose.mp3: 85 Short music jingles / Kenney / CC0
+- snd/j_end.mp3: 85 Short music jingles / Kenney / CC0
+- snd/j_ok.mp3: 85 Short music jingles / Kenney / CC0
+- snd/ringback.mp3: File:US ringback tone.ogg / Edokter / CC0（6秒に切った）
+- snd/amb_morning.mp3: File:Birds singing in garden.ogg / ezwa / Public domain（30秒に切った）
+- snd/amb_day.mp3: File:Sunday in the city street noise 1 / Public domain（_assets/audio/city の継ぎ目なしループ）
+- snd/vacuum_loop.mp3: File:WWS VacuumPump.ogg / Work With Sounds / Werstas / CC BY 4.0（kobito-escape から流用）
+- snd/game_muf.mp3: Funky Hip Hop Lofi Jam（Lowpass 版）/ omfgdude / CC0（ヘッドホンから漏れるゲームの音として48秒に切った）
+- snd/tv_laugh.mp3: File:72844 lonemonk approx-800-laughter-and-clapter-1.wav / lonemonk (freesound.org) / CC BY 3.0（下の階のテレビとして、こもらせて30秒に切った）
+- snd/snore.mp3: File:Snoring of old man.ogg / Saaabaaato / CC0（5秒に切った）
+
+## 人物と絵
+- img/h_*.webp, m_*.webp（m_vacuum と m_down を除く）, dad.webp, grandma.webp, onigiri.webp, mikan.webp, sticky.webp: このゲームのために画像生成で作った架空の人物と小道具（art/prompts がプロンプト、art/key.py が切り抜き。おかんの顔は kobito-vs-okan のおかんを参照に渡した）
+- img/m_vacuum.webp, m_down.webp, cat.webp: kobito-vs-okan から流用（同じく画像生成）
+- 部屋（床・壁・ドア・ベッド・テレビ）はコードで作った形とテクスチャ
+- js/look.js: tom3games の共通部品
+- vendor/three*.min.js: three.js（MIT）

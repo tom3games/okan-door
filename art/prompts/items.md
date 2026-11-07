@@ -1,0 +1,6 @@
+ART STYLE (strict): Japanese gag-manga illustration for a silly comedy game, printed and cut out like a paper puppet. Thick, confident, slightly wobbly hand-inked black outlines. Flat cel colors with at most one simple shadow tone. Huge, rubbery, hilariously exaggerated cartoon face, few lines, no wrinkles.  Warm and funny, never scary or gross. No realism, no photo, no 3D render, no gradients, no airbrush, no texture noise, no blood, nothing sexual, no violence. An original invented character, not based on any existing franchise, brand or real person.
+SUBJECT: a sheet of THREE separate objects in gag-manga style, thick black outlines, flat colors:
+1. LEFT: two triangle rice balls (onigiri) wrapped in dark seaweed on a small white round plate, the plate wrapped in clear plastic wrap with a few white shine lines, seen slightly from above.
+2. CENTER: one bright orange mandarin orange with a small green leaf.
+3. RIGHT: a small yellow square sticky note, completely blank with no writing, slightly curled corner.
+BACKGROUND: perfectly flat pure chroma green #00FF00 across the whole image, no floor, no shadow, no text, no letters anywhere, no logos. Do not use green anywhere except the tiny leaf. Everything inside the frame with margin, wide gaps between objects.

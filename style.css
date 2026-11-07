@@ -1,0 +1,113 @@
+[hidden]{display:none!important}
+:root{--ink:#2a2118;--paper:#fbf6ea;--wood:#8a6440;--red:#c4372b;--lamp:#ffd98a}
+*{box-sizing:border-box;margin:0;padding:0}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%;background:#1d1915;height:100%}
+body{height:100%;overflow:hidden;color:var(--ink);font-family:"Klee One","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;font-weight:600;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+button,a{font-family:inherit;font-weight:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button{border:0;background:none}
+#view{position:fixed;inset:0;width:100vw;height:100svh;display:block;touch-action:none}
+#flash{position:fixed;inset:0;pointer-events:none;background:#fff;opacity:0;z-index:5}
+main{position:fixed;inset:0;height:100svh;overflow:hidden;z-index:3}
+
+/* タイトル: ドアに貼った手書きの紙 */
+#vTitle{display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 9svh) 16px calc(env(safe-area-inset-bottom) + 5svh)}
+.sign{position:relative;background:var(--paper);padding:22px 22px 16px;transform:rotate(-2.2deg);box-shadow:0 10px 24px rgba(0,0,0,.35);max-width:330px;width:86vw;text-align:left;
+  background-image:repeating-linear-gradient(transparent 0 33px,rgba(90,120,170,.22) 33px 34px)}
+.sign h1{font-family:"Yusei Magic",sans-serif;font-weight:400;line-height:1.08;color:#1c1712}
+.sign h1 span{display:block;font-size:clamp(26px,8vw,34px)}
+.sign h1 b{display:block;font-weight:400;font-size:clamp(34px,11vw,46px);color:var(--red);margin-left:-.06em;white-space:nowrap}
+.sign p{font-size:13px;margin-top:10px;color:#5d5246}
+.tape{position:absolute;width:74px;height:22px;background:rgba(240,226,180,.82);top:-10px}
+.tape.t1{left:-14px;transform:rotate(-24deg)}.tape.t2{right:-16px;transform:rotate(18deg)}
+.tbtns{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+.tbtns .row{display:flex;gap:10px}
+.go{font-family:"Yusei Magic",sans-serif;font-weight:400;font-size:24px;min-width:210px;min-height:58px;padding:0 28px;border-radius:14px;background:#e8c35a;color:#2a1d0c;box-shadow:0 5px 0 #8a6420;transform:rotate(1deg)}
+.go:active{transform:translateY(4px) rotate(1deg);box-shadow:0 1px 0 #8a6420}
+.small{font-size:14px;min-height:40px;padding:0 16px;border-radius:20px;background:rgba(251,246,234,.92);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+
+/* 遊び方: ノートの切れ端 */
+#vHow{display:flex;align-items:center;justify-content:center;background:rgba(18,14,10,.6);padding:16px}
+.howpaper{background:var(--paper);width:min(400px,100%);max-height:calc(100svh - 32px);padding:18px 18px 12px;transform:rotate(.6deg);display:flex;flex-direction:column;gap:8px;
+  background-image:repeating-linear-gradient(transparent 0 29px,rgba(90,120,170,.2) 29px 30px)}
+.howpaper h2{font-family:"Yusei Magic",sans-serif;font-weight:400;font-size:22px}
+.howpaper .lead{font-size:14px;line-height:1.5;color:var(--red)}
+#howList{list-style:none;display:flex;flex-direction:column;gap:2px}
+#howList li{display:flex;justify-content:space-between;gap:8px;font-size:14px;line-height:1.35;padding:5px 0;border-bottom:1px dashed rgba(60,50,40,.25)}
+#howList li b{font-weight:600;color:#1f4c87;white-space:nowrap}
+.howpaper .warn{font-size:13px;line-height:1.5;color:#5d5246}
+.small2{font-size:18px;min-height:46px;min-width:150px;align-self:center;margin-top:4px}
+.foot{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:#7a6e60;text-align:center}
+.foot a{display:inline-flex;align-items:center;min-height:38px;padding:0 10px;color:#1f4c87;font-size:13px}
+
+/* 遊び中 */
+#vPlay{pointer-events:none}
+#vPlay button{pointer-events:auto}
+.bubble{position:absolute;left:0;top:0;max-width:62vw;background:#fff;color:#1c1712;font-family:"Yusei Magic",sans-serif;font-size:clamp(17px,5vw,21px);line-height:1.25;padding:9px 14px;border-radius:18px 18px 18px 4px;
+  box-shadow:2px 4px 8px rgba(0,0,0,.3);border:2px solid #1c1712;white-space:nowrap;transform-origin:0 100%;animation:pop .22s ease-out}
+.bubble:not(.hero)::after{content:"";position:absolute;left:10px;bottom:-12px;border:7px solid transparent;border-top:9px solid #1c1712;border-left:3px solid transparent}
+.bubble.hero{background:#dbe8ff;border-radius:18px 18px 4px 18px;transform-origin:100% 100%}
+.bubble.dad{background:#f1f1e6}
+html[lang=en] .bubble{white-space:normal;max-width:72vw}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.stamp{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 12svh);transform:translateX(-50%) rotate(-4deg);font-family:"Yusei Magic",sans-serif;font-size:clamp(26px,8vw,36px);padding:14px 22px 10px;color:var(--red);background:#ffe36e;box-shadow:2px 6px 10px rgba(0,0,0,.35);animation:stampIn .2s ease-out}
+.stamp::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:rgba(0,0,0,.06)}
+.stamp.perfect{color:#1f6a3a;background:#bfe8a8}.stamp.ok{color:#1f4c87;background:#bfe0ff}.stamp.granny{color:#8a5a1f;background:#ffd2a8}
+@keyframes stampIn{from{transform:translateX(-50%) translateY(-30px) rotate(-12deg);opacity:0}to{transform:translateX(-50%) rotate(-4deg);opacity:1}}
+.hint{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 132px);text-align:center;font-size:clamp(16px,4.6vw,19px);color:#fff;text-shadow:0 2px 0 #000,0 0 8px #000}
+.skip{position:absolute;right:12px;top:calc(env(safe-area-inset-top) + 10px);min-height:38px;padding:0 14px;border-radius:19px;background:rgba(20,16,12,.6);color:#fff;font-size:13px}
+#defs{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;gap:6px;padding:0 10px calc(env(safe-area-inset-bottom) + 12px);pointer-events:none}
+.def{flex:1;max-width:96px;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--paper);border-radius:12px;padding:6px 2px 7px;
+  box-shadow:0 0 0 3px #fff,0 4px 10px rgba(0,0,0,.4);font-size:clamp(13px,3.7vw,15px);line-height:1.1;white-space:nowrap;transition:transform .1s}
+.def:nth-child(1){transform:rotate(-2deg)}.def:nth-child(2){transform:rotate(1.5deg)}.def:nth-child(3){transform:rotate(-1deg)}.def:nth-child(4){transform:rotate(2deg)}
+.def svg{width:46px;height:46px}
+.def.on{background:#ffe9a6;box-shadow:0 0 0 3px #e8a21a,0 4px 10px rgba(0,0,0,.4)}
+.def:active{transform:scale(.94)}
+.def.mash{animation:mash .18s infinite alternate}
+@keyframes mash{from{transform:scale(1)}to{transform:scale(1.08)}}
+.def.lock{opacity:.55}
+.def.warn svg path[stroke="#3b5c8f"]{stroke:#d22}
+.def.warn::after{content:"";position:absolute;top:6px;right:8px;width:10px;height:10px;border-radius:50%;background:#d22;box-shadow:0 0 0 2px #fff}
+.def{position:relative}
+.finger{position:absolute;width:44px;height:44px;pointer-events:none;z-index:4;animation:tap 1s infinite}
+@keyframes tap{0%,100%{transform:translate(0,0)}50%{transform:translate(4px,8px)}}
+
+#bMute{position:fixed;z-index:6;right:12px;top:calc(env(safe-area-inset-top) + 10px);width:42px;height:42px;border-radius:21px;background:rgba(20,16,12,.55);color:#fff;display:flex;align-items:center;justify-content:center}
+#bMute svg{width:24px;height:24px}
+#bMute.off #mWave{display:none}#bMute:not(.off) #mX{display:none}
+#vPlay .skip{right:62px}
+
+/* 夜のドアの前 */
+#vEnd{background:radial-gradient(ellipse at 50% 100%,rgba(255,214,140,.55) 0%,rgba(255,200,120,.12) 45%,rgba(0,0,0,0) 70%),repeating-linear-gradient(90deg,#4a3422 0 46px,#3a2818 46px 48px),#2a2018;display:flex;align-items:flex-end;justify-content:center}
+#vEnd::before{content:"";position:absolute;left:0;right:0;top:0;height:22svh;background:linear-gradient(#efe2c6,#d8c49e);box-shadow:0 6px 18px rgba(0,0,0,.5)}
+#vEnd::after{content:"";position:absolute;left:0;right:0;top:22svh;height:12px;background:#f4efe4}
+.hall{position:relative;width:min(420px,100%);height:100%}
+#eHero{position:absolute;left:4%;bottom:16svh;height:44svh;max-width:55%;object-fit:contain;opacity:0;transition:opacity .6s}
+#ePlate{position:absolute;right:6%;bottom:18svh;width:min(48vw,210px);opacity:0;transform:translateY(-20px);transition:all .5s}
+#eMemo{position:absolute;right:6%;bottom:calc(20svh + min(38vw,170px));width:min(40vw,170px);transform:rotate(5deg);opacity:0;transition:opacity .5s}
+#eMemo img{width:100%;display:block}
+#eMemoT{white-space:pre-line;position:absolute;inset:18% 12% 22%;display:flex;align-items:center;justify-content:center;text-align:center;font-family:"Yusei Magic",sans-serif;font-size:clamp(15px,4.4vw,19px);line-height:1.3;color:#2a2118}
+#vEnd.s1 #ePlate{opacity:1;transform:none}#vEnd.s2 #eMemo{opacity:1}#vEnd.s3 #eHero{opacity:1}
+
+/* 結果: 連絡ノート */
+#vResult{background:#2b2620;display:flex;flex-direction:column;align-items:center;padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 8px);gap:8px}
+#note{flex:none;display:block;transform:rotate(-.8deg);box-shadow:0 8px 22px rgba(0,0,0,.5)}
+.notebox{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+.rbtns{display:flex;gap:10px;flex:none}
+.rrow{display:flex;flex:none}
+#vResult .go{min-height:52px;font-size:21px}
+
+/* 読み込み */
+#boot{position:fixed;inset:0;z-index:20;background:#1d1915;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .4s;color:#f2e6cf}
+#boot.gone{opacity:0;pointer-events:none}
+#boot svg{width:150px}
+#boot .feet{animation:pace 1.6s ease-in-out infinite}
+@keyframes pace{0%,100%{transform:translateX(-14px)}50%{transform:translateX(14px)}}
+#boot p{font-size:15px}
+.boot-bar{width:160px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;overflow:hidden}
+.boot-bar i{display:block;height:100%;background:var(--lamp);transform:scaleX(0);transform-origin:0 50%;transition:transform .25s}
+#bootErr{position:fixed;left:8px;right:8px;bottom:8px;z-index:30;background:#fff;color:#b00;font:12px/1.4 monospace;white-space:pre-wrap;padding:10px;border-radius:8px}
+@media (max-height:700px){
+  .def{min-height:82px}.def svg{width:38px;height:38px}
+  .hint{bottom:calc(env(safe-area-inset-bottom) + 112px)}
+  .sign{padding:16px 18px 12px}.go{min-height:52px}
+}

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>おかんを部屋に入れるな | ドアを守るバカゲー</title>
+<meta name="description" content="朝7時から夜10時まで、自分の部屋のドアを守るバカゲー。ご飯、洗濯物、宅配便のふり、合鍵、おとん。おかんの手口を足音とドアノブで読んで、押さえる・寝たふり・返事・隠れるで守り切れ。ダウンロードなしでスマホのブラウザで遊べる。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="おかんを部屋に入れるな">
+<meta property="og:description" content="「ご飯できたよー」なのに、足音がやけに静か。おかんの手口を足音とドアノブで読んで、夜まで部屋を守り切れ。ダウンロードなしのバカゲー。">
+<meta property="og:image" content="https://tom3games.github.io/okan-door/og.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://tom3games.github.io/okan-door/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#2b2620">
+<link rel="icon" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=Yusei+Magic&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script>window.__bootN=0;window.__bootStep=function(){var n=++window.__bootN,b=document.getElementById('bootBar');if(b)b.style.transform='scaleX('+Math.min(1,n/9)+')'}</script>
+<link rel="modulepreload" href="vendor/three.core.min.js" onload="__bootStep()">
+<link rel="modulepreload" href="vendor/three.module.min.js" onload="__bootStep()">
+<link rel="modulepreload" href="js/game.js?v=1" onload="__bootStep()">
+<link rel="modulepreload" href="js/look.js?v=1" onload="__bootStep()">
+<link rel="preload" as="image" href="img/h_idle.webp" onload="__bootStep()">
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="flash"></div>
+
+<main id="vTitle" hidden>
+  <div class="sign" id="sign"><i class="tape t1"></i><i class="tape t2"></i><h1><span id="t1"></span><b id="t2"></b></h1><p id="tSub"></p></div>
+  <div class="tbtns">
+    <button id="bStart" class="go"></button>
+    <div class="row"><button id="bHow" class="small"></button><button id="bLang" class="small"></button></div>
+  </div>
+</main>
+
+<main id="vHow" hidden>
+  <div class="howpaper">
+    <h2 id="howH"></h2>
+    <p class="lead" id="howLead"></p>
+    <ul id="howList"></ul>
+    <p class="warn" id="howWarn"></p>
+    <button id="bHowClose" class="go small2"></button>
+    <p class="foot"><a id="lPrivacy" href="privacy.html" target="_blank" rel="noopener"></a><span id="howCredit"></span></p>
+  </div>
+</main>
+
+<main id="vPlay" hidden>
+  <div id="bubble" class="bubble" hidden></div>
+  <div id="hbubble" class="bubble hero" hidden></div>
+  <div id="stamp" class="stamp" hidden></div>
+  <div id="hint" class="hint" hidden></div>
+  <button id="bSkip" class="skip" hidden></button>
+  <div id="defs">
+    <button class="def" id="dHold" data-d="hold"><svg viewBox="0 0 64 64"><circle cx="20" cy="32" r="12" fill="#c9a24a" stroke="#3a2a14" stroke-width="3"/><rect x="20" y="27" width="36" height="10" rx="5" fill="#d9b55c" stroke="#3a2a14" stroke-width="3"/><circle cx="20" cy="32" r="4" fill="#3a2a14"/></svg><span></span></button>
+    <button class="def" id="dSleep" data-d="sleep"><svg viewBox="0 0 64 64"><path d="M8 40c0-12 8-16 24-16s24 4 24 16c0 6-6 8-24 8S8 46 8 40z" fill="#f4efe6" stroke="#3a2a14" stroke-width="3"/><path d="M20 36q5 4 10 0M36 36q5 4 10 0" fill="none" stroke="#3a2a14" stroke-width="3" stroke-linecap="round"/><path d="M44 10h10l-10 10h10" fill="none" stroke="#3b5c8f" stroke-width="3" stroke-linejoin="round"/></svg><span></span></button>
+    <button class="def" id="dReply" data-d="reply"><svg viewBox="0 0 64 64"><path d="M10 14h44v26H30l-12 10v-10h-8z" fill="#fff" stroke="#3a2a14" stroke-width="3" stroke-linejoin="round"/><path d="M32 20v10" stroke="#c4372b" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="35" r="2.6" fill="#c4372b"/></svg><span></span></button>
+    <button class="def" id="dHide" data-d="hide"><svg viewBox="0 0 64 64"><rect x="6" y="22" width="52" height="14" rx="3" fill="#7da0c9" stroke="#3a2a14" stroke-width="3"/><rect x="6" y="16" width="14" height="10" rx="4" fill="#fff" stroke="#3a2a14" stroke-width="3"/><path d="M8 36v14M56 36v14" stroke="#3a2a14" stroke-width="4"/><circle cx="27" cy="44" r="3.2" fill="#fff" stroke="#3a2a14" stroke-width="2"/><circle cx="37" cy="44" r="3.2" fill="#fff" stroke="#3a2a14" stroke-width="2"/></svg><span></span></button>
+  </div>
+</main>
+
+<main id="vEnd" hidden>
+  <div class="hall"><img id="eHero" alt=""><img id="ePlate" alt=""><div id="eMemo"><img id="eSticky" alt=""><span id="eMemoT"></span></div></div>
+</main>
+
+<main id="vResult" hidden>
+  <div class="notebox" id="noteBox"><canvas id="note" width="720" height="1000"></canvas></div>
+  <div class="rbtns"><button id="bSave" class="small"></button><a id="bPost" class="small" target="_blank" rel="noopener"></a></div>
+  <div class="rrow"><button id="bAgain" class="go"></button></div>
+</main>
+
+<button id="bMute" aria-label="音" hidden><svg viewBox="0 0 32 32"><path d="M5 12h6l7-6v20l-7-6H5z" fill="currentColor"/><path id="mWave" d="M22 11q4 5 0 10M25 8q7 8 0 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path id="mX" d="M22 12l8 8M30 12l-8 8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+
+<div id="boot">
+  <svg viewBox="0 0 200 180" aria-hidden="true">
+    <rect x="50" y="10" width="100" height="150" rx="3" fill="#8a6440" stroke="#3a2a14" stroke-width="4"/>
+    <rect x="62" y="24" width="76" height="56" rx="2" fill="none" stroke="#5e4226" stroke-width="3"/>
+    <rect x="62" y="92" width="76" height="56" rx="2" fill="none" stroke="#5e4226" stroke-width="3"/>
+    <rect x="124" y="84" width="22" height="7" rx="3" fill="#d9b55c" stroke="#3a2a14" stroke-width="2"/>
+    <rect x="44" y="160" width="112" height="6" fill="#ffd98a"/>
+    <path d="M30 168h140" stroke="#ffd98a" stroke-width="3" opacity=".5"/>
+    <g class="feet"><ellipse cx="92" cy="166" rx="9" ry="4" fill="#1b140c"/><ellipse cx="110" cy="166" rx="9" ry="4" fill="#1b140c"/></g>
+  </svg>
+  <p id="bootMsg">おかんが階段を上がってくる</p>
+  <div class="boot-bar"><i id="bootBar"></i></div>
+</div>
+
+<script>
+(function(){var o={passive:false};
+['gesturestart','gesturechange','gestureend'].forEach(function(n){document.addEventListener(n,function(e){e.preventDefault()},o)});
+document.addEventListener('touchmove',function(e){if(e.touches&&e.touches.length>1)e.preventDefault()},o);
+var l=0;document.addEventListener('touchend',function(e){var n=Date.now();if(n-l<300&&!(e.target.closest&&e.target.closest('button,a')))e.preventDefault();l=n},o);
+document.addEventListener('dblclick',function(e){e.preventDefault()},o);
+window.addEventListener('wheel',function(e){if(e.ctrlKey)e.preventDefault()},o);
+window.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&['+','-','=','0',';'].indexOf(e.key)>=0)e.preventDefault()});
+try{if((localStorage.getItem('okan_lang')||((navigator.language||'ja').indexOf('ja')==0?'ja':'en'))=='en')document.getElementById('bootMsg').textContent='Mom is coming upstairs'}catch(e){}
+setTimeout(function(){window.__bootTimeout=!window.__bootDone;document.getElementById('boot').classList.add('gone')},12000);
+var errs=[];window.addEventListener('error',function(e){errs.push((e.message||(e.target&&(e.target.src||e.target.href))||'error')+(e.filename?' @'+e.filename+':'+e.lineno:''))},true);
+window.addEventListener('unhandledrejection',function(e){errs.push('reject: '+String(e.reason&&e.reason.message||e.reason))});
+setTimeout(function(){if(window.__jsUp)return;var d=document.createElement('div');d.id='bootErr';d.textContent='起動できませんでした / failed to start\n'+(errs.join('\n')||'(no error captured)')+'\n'+navigator.userAgent;document.body.appendChild(d)},15000)})();
+</script>
+<script src="tm.js?v=1" data-game="okan-door"></script>
+<script src="sfx.js?v=1"></script>
+<script src="data.js?v=1"></script>
+<script type="module" src="js/game.js?v=1"></script>
+<script src="support.js?v=1" data-ja="おにぎり" data-en="a rice ball"></script>
+</body>
+</html>
