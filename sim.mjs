@@ -1,5 +1,6 @@
 // 遊び方ごとの分布。bot を 12 日ずつ早回しで回す。node sim.mjs
 // 読む bot（人間の速さ）が一番、何もしない bot が最低になること
+import './mute-auto.mjs'  // テスト中は絶対に音を出さない（playwright を無音に差し替え）
 import { chromium } from 'playwright'
 import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'

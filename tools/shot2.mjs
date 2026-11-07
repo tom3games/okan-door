@@ -1,4 +1,5 @@
 // 終わりの場面と結果を実時間で撮る。node tools/shot2.mjs
+import '../mute-auto.mjs'  // テスト中は絶対に音を出さない（playwright を無音に差し替え）
 import { chromium } from 'playwright'
 import { spawn } from 'node:child_process'
 import { MUTE_LAUNCH, muteContext } from '../mute.mjs'
