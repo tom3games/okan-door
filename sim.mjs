@@ -13,7 +13,7 @@ const b = await chromium.launch(MUTE_LAUNCH), ctx = await b.newContext({ locale:
 const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message))
 await p.goto(`http://localhost:${PORT}/?notut=1`); await p.waitForFunction(() => window.__okanReady, null, { timeout: 15000 })
 await p.addScriptTag({ content: readFileSync(ROOT + '/tools/bot.js', 'utf8') })
-const BOTS = ['reader', 'hold', 'sleep', 'reply', 'hide', 'random', 'none'], N = Number(process.env.N || 12)
+const BOTS = ['reader', 'muted', 'line', 'hold', 'sleep', 'reply', 'hide', 'random', 'none'], N = Number(process.env.N || 12)
 const rows = await p.evaluate(({ BOTS, N }) => {
   okan.dbg.pause(true)
   const out = {}
@@ -28,13 +28,14 @@ for (const name of BOTS) {
 }
 console.table(table)
 const sc = Object.fromEntries(table.map(t => [t.bot, t.score]))
-const ok1 = Object.entries(sc).every(([k, v]) => k === 'reader' || v < sc.reader)
+const ok1 = Object.entries(sc).every(([k, v]) => k === 'reader' || k === 'muted' || (k === 'line' ? v < sc.reader - 4 : v < sc.reader - 10))
+const okM = sc.muted >= sc.reader - 1
 const ok2 = Object.entries(sc).every(([k, v]) => k === 'none' || v > sc.none)
-const minR = Math.min(...rows.reader.map(x => x.score)), maxOther = Math.max(...BOTS.filter(k => k !== 'reader').flatMap(k => rows[k].map(x => x.score)))
+const minR = Math.min(...rows.reader.map(x => x.score)), maxOther = Math.max(...BOTS.filter(k => !['reader', 'muted', 'line'].includes(k)).flatMap(k => rows[k].map(x => x.score)))
 // 同じ種なら同じ結果（乱数で当たり外れを決めていない）
 const again = await p.evaluate(() => [okan.simRun(window.BOTS.reader, 1000 + 7919).score, okan.simRun(window.BOTS.reader, 1000 + 7919).score])
-console.log(`読む bot が一番: ${ok1 ? 'OK' : 'NG'} / 何もしないが最低: ${ok2 ? 'OK' : 'NG'} / 読む bot の最低点 ${minR} > ほかの最高点 ${maxOther}: ${minR > maxOther ? 'OK' : 'NG'} / 同じ種で同じ点: ${again[0] === again[1] ? 'OK' : 'NG'}`)
+console.log(`音なしで読む bot も同じくらい: ${okM ? 'OK' : 'NG'} / 読む bot が一番（安全策・でたらめより10点以上、台詞だけ信じる bot より4点以上）: ${ok1 ? 'OK' : 'NG'} / 何もしないが最低: ${ok2 ? 'OK' : 'NG'} / 読む bot の最低点 ${minR} > 安全策・でたらめ・何もしないの最高点 ${maxOther}: ${minR > maxOther ? 'OK' : 'NG'} / 同じ種で同じ点: ${again[0] === again[1] ? 'OK' : 'NG'}`)
 const rr = rows.reader.flatMap(x => x.log).filter(l => l.kind === 'breach'); console.log('読む bot が入られた手口:', JSON.stringify(rr.slice(0, 8)))
 console.log(errs.length ? 'errors: ' + errs.join(' | ') : 'no errors')
 await b.close(); server.kill()
-process.exit(ok1 && ok2 && again[0] === again[1] && !errs.length ? 0 : 1)
+process.exit(ok1 && okM && minR > maxOther && ok2 && again[0] === again[1] && !errs.length ? 0 : 1)

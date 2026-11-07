@@ -95,6 +95,45 @@ const bar = box(0.13, 0.025, 0.025, brass, [-0.06, 0, 0.03], lever)
 const keyhole = box(0.012, 0.026, 0.01, std('#20160c'), [0, -0.07, 0.006], lever)
 const glint = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#fff6c8', transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); glint.scale.set(0.06, 0.06, 1); glint.position.set(0, -0.07, 0.03); lever.add(glint)
 const notes = new THREE.Group(); doorPivot.add(notes)
+// ---- v2: ドアに出る印（tell）。どれも大きく、見ただけで分かる
+// 書き文字（ガチャガチャ・コンコン など）。音を消していても読める
+function textSprite(w, h) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 192
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, depthWrite: false, toneMapped: false }))
+  s.scale.set(w, h, 1); s.renderOrder = 10; s.visible = false; s.userData = { c, t, text: '' }; scene.add(s); return s
+}
+function setSpriteText(s, text, col) {
+  if (s.userData.text === text + col) return; s.userData.text = text + col
+  const x = s.userData.c.getContext('2d'); x.clearRect(0, 0, 512, 192)
+  let fs = 120; x.font = `${fs}px "Yusei Magic", sans-serif`; while (x.measureText(text).width > 470 && fs > 40) { fs -= 6; x.font = `${fs}px "Yusei Magic", sans-serif` }
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round'
+  x.lineWidth = 22; x.strokeStyle = '#1c1712'; x.strokeText(text, 256, 100)
+  x.fillStyle = col || '#fff'; x.fillText(text, 256, 100); s.userData.t.needsUpdate = true
+}
+const ono = textSprite(0.62, 0.23)
+// 合鍵: 鍵穴に刺さる大きな鍵（先が鍵穴、持ち手が右下）
+const keySpr = (() => {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d')
+  x.lineJoin = 'round'; x.strokeStyle = '#3a2a14'; x.lineWidth = 7; x.fillStyle = '#e2bb55'
+  x.beginPath(); x.rect(6, 38, 150, 20); x.fill(); x.stroke()
+  x.beginPath(); x.moveTo(22, 58); x.lineTo(22, 78); x.lineTo(40, 78); x.lineTo(40, 66); x.lineTo(58, 66); x.lineTo(58, 58); x.fill(); x.stroke()
+  x.beginPath(); x.arc(196, 48, 40, 0, 7); x.fill(); x.stroke(); x.fillStyle = '#fbf6ea'; x.beginPath(); x.arc(204, 48, 15, 0, 7); x.fill(); x.stroke()
+  x.fillStyle = 'rgba(255,255,255,.55)'; x.fillRect(14, 42, 130, 5)
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, toneMapped: false }))
+  s.center.set(0.02, 0.5); s.scale.set(0.4, 0.15, 1); s.renderOrder = 11; s.visible = false; scene.add(s); return s
+})()
+// ノックの衝撃（ドアの真ん中に放射の線）
+const knockSpr = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d')
+  x.translate(128, 128); x.strokeStyle = '#fff'; x.lineCap = 'round'
+  for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + 0.2, r0 = 46, r1 = 92 + (i % 2) * 26; x.lineWidth = 22; x.strokeStyle = '#1c1712'; x.beginPath(); x.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); x.lineTo(Math.cos(a) * r1, Math.sin(a) * r1); x.stroke(); x.lineWidth = 11; x.strokeStyle = '#fff6c8'; x.stroke() }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, toneMapped: false }))
+  s.scale.set(0.42, 0.42, 1); s.renderOrder = 10; s.visible = false; scene.add(s); return s
+})()
+function hideTells() { ono.visible = false; keySpr.visible = false; knockSpr.visible = false; glint.material.opacity = 0 }
 // ドアに貼った紙「ノックしてね」
 { const c = document.createElement('canvas'); c.width = 256; c.height = 180; const x = c.getContext('2d'); x.fillStyle = '#fbf6ea'; x.fillRect(0, 0, 256, 180); x.fillStyle = 'rgba(240,226,180,.9)'; x.fillRect(90, 0, 76, 18); x.fillStyle = '#1c1712'; x.font = '44px "Yusei Magic", sans-serif'; x.textAlign = 'center'; x.fillText(lang === 'en' ? 'KNOCK' : 'ノック', 128, 82); x.fillText(lang === 'en' ? 'FIRST' : 'してね', 128, 140)
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; const m = plane(0.3, 0.21, new THREE.MeshStandardMaterial({ map: t, roughness: 0.9 }), [0, 0, 0]); m.removeFromParent(); m.position.set(DOOR.w / 2, 1.5, 0.025); m.rotation.z = 0.04; doorPivot.add(m); m.userData.c = c; m.userData.t = t; window.__doorSign = m }
@@ -136,12 +175,14 @@ const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.06, 24), ne
 const lampLight = new THREE.PointLight('#ffe8c2', 0, 7, 1.2); lampLight.position.set(0, R.h - 0.2, 0.3); scene.add(lampLight)
 // 時計（ドアの上）
 const clockC = document.createElement('canvas'); clockC.width = clockC.height = 256; const clockT = new THREE.CanvasTexture(clockC); clockT.colorSpace = THREE.SRGBColorSpace
-const clockM = new THREE.Mesh(new THREE.CircleGeometry(0.17, 40), new THREE.MeshStandardMaterial({ map: clockT, roughness: 0.5 })); clockM.position.set(-0.06, 1.38, R.z0 + 0.015); scene.add(clockM)
+const clockM = new THREE.Mesh(new THREE.CircleGeometry(0.17, 40), new THREE.MeshStandardMaterial({ map: clockT, roughness: 0.5 })); clockM.position.set(-0.15, 1.4, R.z0 + 0.015); scene.add(clockM)
 const clockRim = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.018, 10, 40), std('#2c2c30', { r: 0.4 })); clockRim.position.copy(clockM.position); scene.add(clockRim)
 let clockMin = -1
-function drawClock(hour) {
-  const m = Math.floor(hour * 60); if (m === clockMin) return; clockMin = m
+// 時計。守り方を選べる間だけ、残り時間を赤い扇で見せる（キッチンタイマーの文字盤のように減っていく）
+function drawClock(hour, left) {
+  const m = Math.floor(hour * 60) + (left == null ? '' : ':' + Math.ceil(left * 60)); if (m === clockMin) return; clockMin = m
   const x = clockC.getContext('2d'); x.fillStyle = '#fbf8f0'; x.fillRect(0, 0, 256, 256); x.save(); x.translate(128, 128)
+  if (left != null && left > 0) { x.fillStyle = left < 0.34 ? '#d8261b' : '#e4554a'; x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 112, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left); x.closePath(); x.fill() }
   for (let i = 0; i < 12; i++) { x.save(); x.rotate(i * Math.PI / 6); x.fillStyle = '#222'; x.fillRect(-4, -118, 8, i % 3 ? 14 : 26); x.restore() }
   const hh = (hour % 12) / 12 * Math.PI * 2, mm = (hour % 1) * Math.PI * 2
   x.lineCap = 'round'; x.strokeStyle = '#1a1a1a'; x.lineWidth = 12; x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.sin(hh) * 62, -Math.cos(hh) * 62); x.stroke()
@@ -211,76 +252,91 @@ function frame() {
   camera.fov = clamp(vf * 180 / Math.PI, 48, 84); camera.updateProjectionMatrix()
 }
 const CAM = { p: new THREE.Vector3(0.02, 1.78, 2.6), t: new THREE.Vector3(-0.06, 0.66, -1.5) }
+// 印が出たらドアに寄る（スマホでも印が大きく見えるように）
+const CAMZ = { p: new THREE.Vector3(-0.38, 1.32, -0.05), t: new THREE.Vector3(-0.64, 1.08, -2.0) }
+let camK = 0
+const camP = new THREE.Vector3(), camT = new THREE.Vector3()
 addEventListener('resize', frame); frame()
 
 // ============================================================ 遊びの状態
+// v2 の流れ: 足音と影（雰囲気）→ 印がドアに出てカメラが寄る → 時計の赤い扇が減る間に守り方を1つ選ぶ → すぐ判定 → 付箋で答え合わせ
 const params = new URLSearchParams(location.search)
 let SIM = false
 const G = {
-  mode: 'boot', day: null, i: 0, a: null, F: 0, streak: 0, score: 0, perfect: 0, ok: 0, breach: 0, granny: 0, log: [], hour: 6.8, tutStep: -1, paused: false, endT: 0, seed: 0, texts: { bubble: null, hbubble: null, stamp: null, hint: null },
+  mode: 'boot', day: null, i: 0, a: null, score: 0, perfect: 0, ok: 0, breach: 0, granny: 0, log: [], hour: 6.8, tutStep: -1, paused: false, endT: 0, seed: 0, texts: { bubble: null, hbubble: null, sticky: null, hint: null },
 }
 const N_SLOTS = 11
+const TUT_KEY = 'okan_tut2'
 function makeDay(seed) {
   const r = mulberry(seed), pick = a => a[Math.floor(r() * a.length)]
   let ints
   for (let tries = 0; tries < 200; tries++) {
-    ints = ['CALL', 'CALL', 'PEEK', 'PEEK', 'RUSH', 'RUSH', 'LURE', 'LURE', 'KEY', pick(['CALL', 'PEEK', 'RUSH', 'LURE'])]
+    ints = ['CALL', 'CALL', 'RUSH', 'RUSH', 'RUSH', 'PEEK', 'PEEK', 'PEEK', 'KEY', 'KEY']
     for (let i = ints.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [ints[i], ints[j]] = [ints[j], ints[i]] }
     ints.unshift('CALL')
     let ok = true; for (let i = 2; i < ints.length; i++) if (ints[i] === ints[i - 1] && ints[i] === ints[i - 2]) ok = false
-    if (ints.indexOf('KEY') < 3) ok = false
+    // 朝の4回で4つの手口が一度は出る（覚えやすい順）
+    if (new Set(ints.slice(0, 5)).size < 4) ok = false
     if (ok) break
   }
-  if (r() < 0.35) { const c = [6, 7, 8, 9, 10].filter(i => ints[i] !== 'KEY'); ints[pick(c)] = 'LADDER' }
-  if (r() < 0.25) { const c = [4, 5, 6, 7, 8, 9].filter(i => ints[i] !== 'KEY' && ints[i] !== 'LADDER'); ints[pick(c)] = 'GRANNY' }
+  if (r() < 0.25) { const c = [4, 5, 6, 7, 8]; ints[pick(c)] = 'GRANNY' }
   const used = {}, slots = []
   ints.forEach((intent, i) => {
-    let id
-    if (intent === 'CALL') id = pick(['knock', 'gohan_call', 'laundry_call', 'teacher'].filter(k => !used[k]).concat(i === 0 ? [] : []).filter(Boolean)) || 'knock'
-    else if (intent === 'PEEK') id = pick(['gohan_peek', 'laundry_peek', 'knock_peek', 'cat'].filter(k => !used[k])) || 'knock_peek'
-    else if (intent === 'RUSH') id = i < 4 ? 'vacuum' : pick(['vacuum', 'dad', ...(i >= 5 ? ['vacuum_lie'] : [])].filter(k => !used[k] || k === 'vacuum'))
-    else if (intent === 'LURE') id = 'lure'
-    else id = { KEY: 'key', LADDER: 'ladder', GRANNY: 'granny' }[intent]
+    const pool = Object.keys(OD.TACTICS).filter(k => OD.TACTICS[k].intent === intent && (k !== 'dad' || i >= 4))
+    let id = pick(pool.filter(k => !used[k])) || pick(pool)
     used[id] = 1
     const tac = OD.TACTICS[id]
-    const line = id === 'lure' ? OD.LURES[Math.min(4, Math.floor(i / N_SLOTS * 5))] : pick(tac.lines)
-    slots.push({ id, intent, line })
+    let line = pick(tac.lines), fake = false
+    // 夕方から: 台詞が印と食い違う（だんだん雑な言い訳に）
+    if (i >= 5 && intent !== 'GRANNY' && r() < 0.55) { const f = OD.FAKES[Math.min(4, i - 5 + Math.floor(r() * 2))]; if (!tac.lines.some(l => l[0] === f[0])) { line = f; fake = true } }
+    // 夜は2回続けて来る（間が無い）
+    const quick = i >= 7 && i % 2 === 0
+    slots.push({ id, intent, line, fake, quick })
   })
   return slots
 }
-const TUT = [{ id: 'knock', intent: 'CALL', line: OD.TACTICS.knock.lines[0], want: 'reply', hint: 'tut1' }, { id: 'vacuum', intent: 'RUSH', line: OD.TACTICS.vacuum.lines[0], want: 'hold', hint: 'tut2' }, { id: 'knock_peek', intent: 'PEEK', line: OD.TACTICS.knock_peek.lines[0], want: 'sleep', hint: 'tut3' }]
-const T_STEPS = 0, T_LINE = 1.2, T_KNOB = 2.4, PUSH_DUR = 2.2
-function winFor(i) { return 3.6 - 1.2 * (i / (N_SLOTS - 1)) }
+const TUT = [
+  { id: 'knock', intent: 'CALL', line: OD.TACTICS.knock.lines[0], want: 'reply' },
+  { id: 'vacuum', intent: 'RUSH', line: OD.TACTICS.vacuum.lines[0], want: 'hold' },
+  { id: 'peek', intent: 'PEEK', line: OD.TACTICS.peek.lines[0], want: 'sleep' },
+  { id: 'key', intent: 'KEY', line: OD.TACTICS.key.lines[0], want: 'hide' },
+]
+const PUSH_DUR = 2.2, ACT_BEAT = 0.45
+// 選べる時間: 朝 4.0 秒 → 夜 2.2 秒
+function winFor(i) { return 4.0 - 1.8 * (i / (N_SLOTS - 1)) }
 
 function newAttempt(slot, tut) {
-  const tac = OD.TACTICS[slot.id], tells = OD.TELLS[slot.intent]
-  return { ...slot, tac, tells, tut: !!tut, phase: 'quiet', t: 0, quiet: G.i === 0 && !tut ? 1.1 : 1.6, def: null, deadline: T_KNOB + (tut ? 2.4 : winFor(G.i)), taps: 0, p: 0, res: null, obs: { steps: null, shadow: null, knob: null, window: false, line: null, sound: null }, sh: { x: -0.9, kind: 'none' }, nextStep: 0, door: 0, doorTo: 0, out: 0, rt: 0, events: {} }
+  const tac = OD.TACTICS[slot.id]
+  const quick = !!slot.quick && !tut
+  return { ...slot, tac, tut: !!tut, phase: 'quiet', t: 0, quiet: quick ? 0.15 : G.i === 0 && !tut ? 0.9 : 1.2, appr: quick ? 0.5 : 1.3, win: tut ? 99 : winFor(G.i), def: null, taps: 0, p: 0, res: null, obs: { vis: null, snd: null, line: null }, sh: { x: -0.9, kind: 'none' }, nextStep: 0, out: 0, rt: 0, events: {} }
 }
 function startDay() {
   G.seed = params.get('seed') ? Number(params.get('seed')) + G.playNo : Math.floor(Math.random() * 1e9)
-  G.day = makeDay(G.seed); G.i = 0; G.F = 0; G.streak = 0; G.score = 0; G.perfect = 0; G.ok = 0; G.breach = 0; G.granny = 0; G.log = []
+  G.day = makeDay(G.seed); G.i = 0; G.score = 0; G.perfect = 0; G.ok = 0; G.breach = 0; G.granny = 0; G.log = []
   notes.clear(); G.mode = 'play'; G.a = newAttempt(G.day[0]); G.hour = 7
   setHero('idle'); resetDoor()
   if (!SIM) { sfx('rooster', { vol: 0.5 }); if (window.TM) TM.start() }
 }
 G.playNo = 0
-function resetDoor() { okan.visible = false; okan2.visible = false; cat.visible = false; ladderShow = 0; ladderK = 0 }
+function resetDoor() { okan.visible = false; okan2.visible = false; cat.visible = false; ladderShow = 0; ladderK = 0; hideTells() }
 
-// 見えている手がかり（bot もこれだけを読む）
-function tells() { return G.a ? { ...G.a.obs, t: G.a.t, phase: G.a.phase, deadline: G.a.deadline } : null }
+// 見えている手がかり（bot もこれだけを読む）。vis は絵、snd は音。どちらも同じ手口を指す
+function tells() { const a = G.a; return a ? { ...a.obs, t: a.t, phase: a.phase, win: a.win, def: a.def, tut: a.tut, want: a.tut ? a.want : null } : null }
 
+// 守り方を選ぶ（印が出ている間に1回だけ。選んだらすぐ判定）
 function choose(d) {
-  const a = G.a; if (!a || !(a.phase === 'approach')) return false
+  const a = G.a; if (!a || a.phase !== 'tell' || a.def) return false
   if (a.tut && d !== a.want) { if (!SIM) sfx('click', { vol: 0.3 }); return false }
-  a.def = d
+  a.def = d; a.phase = 'act'; a.rt = 0
   if (!SIM) sfx('click', { vol: 0.5 })
   setHero(d)
-  if (d === 'reply' && !a.tut) say('hbubble', L(OD.REPLY), 'hero', 1.4)
+  if (d === 'reply') say('hbubble', L(OD.REPLY), 'hero', 1.2)
   if (d === 'sleep') sfx('snore', { vol: 0.5, delay: 0.2 })
   loopVol('game', d === 'sleep' || d === 'hide' ? 0 : 0.16)
+  unsay('hint')
   return true
 }
-function tap() { const a = G.a; if (a && a.phase === 'push') { a.taps++; a.lastTap = a.t; if (!SIM && a.taps % 3 === 0) sfx('grunt', { vol: 0.35 }) ; return true } return false }
+function tap() { const a = G.a; if (a && a.phase === 'push') { a.taps++; a.lastTap = a.t; if (!SIM && a.taps % 3 === 0) sfx('grunt', { vol: 0.35 }); return true } return false }
 
 // 文字（同時に2つまで。新しいものを出す時に数をそろえる）
 function say(slot, text, cls, sec) {
@@ -291,67 +347,96 @@ function say(slot, text, cls, sec) {
 function unsay(slot) { G.texts[slot] = null }
 G.clock = 0
 
+function lineSnd(s) {
+  if (s === 'dish') sfx('dish', { vol: 0.7 }); else if (s === 'cloth') sfx('cloth', { vol: 0.8 }); else if (s === 'ring') sfx('ring', { vol: 0.5 }); else if (s === 'meow') sfx('meow', { vol: 0.8 }); else if (s === 'grunt') sfx('grunt', { vol: 0.6 })
+  if (s === 'vacuum' && !SIM) Snd.loop('vac', S('vacuum_loop'), 0.5, 0.4)
+}
+// 印を出す（絵と音）
+function startTell(a) {
+  const v = OD.TELL[a.intent]
+  a.obs.vis = v; a.obs.snd = v
+  if (SIM) return
+  setSpriteText(ono, L(OD.ONO[v]), v === 'rattle' ? '#ffd23a' : v === 'key' ? '#ffe9a0' : v === 'peek' ? '#ffffff' : v === 'granny' ? '#ffd2a8' : '#fff6c8')
+  ono.visible = true
+  if (v === 'rattle') { ono.position.set(-0.74, 1.3, R.z0 + 0.25) }
+  else if (v === 'knock') { ono.position.set(DOOR.cx, 1.52, R.z0 + 0.2); knockSpr.position.set(DOOR.cx, 1.12, R.z0 + 0.1) }
+  else if (v === 'key') { ono.position.set(-0.7, 1.3, R.z0 + 0.25); keySpr.visible = true }
+  else if (v === 'peek') { ono.position.set(-0.6, 1.62, R.z0 + 0.25); setPaper(okan, 'm_peek', 1.5); okan.position.set(-0.66, 0, R.z0 - 0.3) }
+  else if (v === 'granny') { ono.position.set(DOOR.cx, 1.7, R.z0 + 0.2); setPaper(okan, 'grandma', 1.15); okan.position.set(DOOR.cx + 0.1, 0, R.z0 - 0.4) }
+  if (v === 'knock') { sfx('knock', { vol: 0.9 }); sfx('knock', { vol: 0.85, delay: 0.9 }) }
+  if (v === 'peek') sfx('creak', { vol: 0.55 })
+  if (v === 'key') { sfx('jingle', { vol: 0.9 }); sfx('key', { vol: 0.8, delay: 0.5 }) }
+  if (v === 'granny') sfx('creak', { vol: 0.4 })
+}
+// 印のアニメ（毎フレーム。印が出ている間ずっと続く。短くならない）
+function animTell(a, dt) {
+  const v = a.obs.vis, k = a.t
+  if (!v) return
+  if (v === 'rattle') {
+    lever.rotation.z = Math.sin(k * 34) * 0.55; doorPivot.rotation.y = -Math.abs(Math.sin(k * 17)) * 0.018
+    ono.material.rotation = Math.sin(k * 30) * 0.06
+    if (!SIM && Math.floor(k / 0.2) !== Math.floor((k - dt) / 0.2)) sfx('rattle', { vol: 0.75 })
+  } else if (v === 'knock') {
+    const ph = k % 0.9, hit = ph < 0.12 || (ph > 0.22 && ph < 0.34)
+    knockSpr.visible = hit; knockSpr.scale.setScalar(hit ? 0.42 + (ph % 0.22) * 0.8 : 0.42)
+    doorMesh.position.z = hit ? -0.008 : 0; lever.rotation.z = 0
+    if (!SIM && k > 0.85 && Math.floor(k / 0.9) !== Math.floor((k - dt) / 0.9)) sfx('knock', { vol: 0.8 })
+  } else if (v === 'key') {
+    const lw = new THREE.Vector3(); lever.localToWorld(lw.set(0, -0.07, 0.03)); keySpr.position.copy(lw)
+    const ins = ease(k / 0.35); keySpr.material.opacity = ins
+    keySpr.material.rotation = k < 0.7 ? 0 : Math.min(Math.PI / 2, (k - 0.7) * 5) * (Math.floor(k / 1.4) % 2 ? -1 : 1) * 0.5
+    glint.material.opacity = Math.max(0, Math.sin(k * 6)) * 0.9
+  } else if (v === 'peek') {
+    doorPivot.rotation.y = -0.62 * ease(k / 0.6); okan.visible = k > 0.15
+  } else if (v === 'granny') {
+    doorPivot.rotation.y = -0.9 * ease(k / 1.2); okan.visible = k > 0.3
+  }
+  ono.material.opacity = ease(k / 0.15)
+  const s = 1 + Math.max(0, 0.25 - k) * 2; ono.scale.set(0.62 * s, 0.23 * s, 1)
+}
+
 function stepAttempt(dt) {
   const a = G.a; a.t += dt; const t = a.t
   if (a.phase === 'quiet') {
-    if (t >= a.quiet) { a.phase = 'approach'; a.t = 0; a.base0 = 0 }
+    if (t >= a.quiet) { a.phase = 'approach'; a.t = 0 }
     return
   }
-  const intent = a.intent, tl = a.tells
   if (a.phase === 'approach') {
-    // 足音と影
-    if (!a.events.steps && t >= T_STEPS) { a.events.steps = 1; a.obs.steps = tl.steps; a.obs.window = !!tl.window; a.sh.kind = intent === 'RUSH' ? (a.tac.dad ? 'two' : 'big') : intent === 'GRANNY' ? 'small' : intent === 'LADDER' ? 'none' : 'center'; a.obs.shadow = tl.window ? null : a.sh.kind; if (tl.window) sfx('clank', { vol: 0.7 }) }
-    if (tl.steps && t < 1.15 && t >= a.nextStep) {
-      const st = tl.steps, iv = st === 'heavy' ? 0.26 : st === 'tiptoe' ? 0.5 : st === 'shuffle' ? 0.42 : 0.32
-      a.nextStep = t + iv
-      if (st === 'heavy') sfx('heavy', { vol: 1, rate: 0.8 }); else if (st === 'tiptoe') sfx('step', { vol: 0.22, rate: 1.35, dest: 'muf' }); else if (st === 'shuffle') sfx('step', { vol: 0.35, rate: 0.75, dest: 'muf' }); else sfx('step', { vol: 0.6 })
-      if (a.tac.dad) sfx('heavy', { vol: 0.8, rate: 0.7, delay: 0.12 })
-    }
-    if (!tl.window) a.sh.x = lerp(-0.9, 0, ease(t / 1.1))
-    if (tl.window) { ladderShow = 1; ladderK = clamp(t / 2.6, 0, 1) * 0.55; if (t > 1.0 && !a.events.clank2) { a.events.clank2 = 1; sfx('clank', { vol: 0.6 }) } }
-    // 台詞と2つ目の音
-    if (!a.events.line && t >= T_LINE) {
-      a.events.line = 1; a.obs.line = L(a.line); a.obs.sound = a.tac.snd
-      say('bubble', L(a.line), a.tac.dad ? 'dad' : '', 4)
-      const s = a.tac.snd
-      if (s === 'knock') sfx('knock', { vol: 0.9 }); else if (s === 'dish') sfx('dish', { vol: 0.7 }); else if (s === 'cloth') sfx('cloth', { vol: 0.8 }); else if (s === 'ring') sfx('ring', { vol: 0.5 }); else if (s === 'meow') sfx('meow', { vol: 0.8 }); else if (s === 'jingle') sfx('jingle', { vol: 0.9 }); else if (s === 'clank') sfx('clank', { vol: 0.7 }); else if (s === 'grunt') sfx('grunt', { vol: 0.6 })
-      if (s === 'vacuum' && !SIM) Snd.loop('vac', S('vacuum_loop'), 0.5, 0.4)
+    // 足音と影（雰囲気。どの手口でも同じ。おとんの時だけ足が2人分）
+    if (!a.events.steps) { a.events.steps = 1; a.sh.kind = a.tac.dad ? 'two' : a.intent === 'GRANNY' ? 'small' : 'center' }
+    if (t < a.appr - 0.15 && t >= a.nextStep) { a.nextStep = t + (a.quick ? 0.2 : 0.32); sfx('step', { vol: 0.55 }); if (a.tac.dad) sfx('heavy', { vol: 0.7, rate: 0.7, delay: 0.12 }) }
+    a.sh.x = lerp(-0.9, 0, ease(t / a.appr))
+    if (!a.events.line && t >= Math.min(0.5, a.appr * 0.5)) {
+      a.events.line = 1; a.obs.line = L(a.line)
+      say('bubble', L(a.line), a.tac.dad ? 'dad' : '', 3)
+      lineSnd(a.tac.snd)
       if (a.tac.cat) { cat.visible = true; a.catT = 0 }
     }
-    if (a.tac.cat && cat.visible) { a.catT += dt; const k = ease(a.catT / 1.4); cat.position.set(lerp(DOOR.cx, -0.55, k), 0, lerp(R.z0 - 0.05, -1.35, k)); cat.scale.y = cat.userData.h * lerp(0.35, 1, ease(a.catT / 0.6)) }
-    // ドアノブ
-    if (!a.events.knob && t >= T_KNOB) {
-      a.events.knob = 1; a.obs.knob = tl.knob
-      if (intent === 'LURE') a.sh.kind = 'aside'
-      if (intent === 'KEY') a.sh.kind = 'low'
-      a.obs.shadow = tl.window ? null : a.sh.kind
-      if (tl.knob === 'slow') sfx('creak', { vol: 0.55 })
-      if (tl.knob === 'key') { sfx('jingle', { vol: 0.9 }); sfx('key', { vol: 0.8, delay: 0.7 }) }
-    }
-    if (a.events.knob) {
-      const k = t - T_KNOB
-      if (tl.knob === 'rattle') { lever.rotation.z = Math.sin(t * 38) * 0.35 * Math.min(1, k * 3); doorPivot.rotation.y = -Math.abs(Math.sin(t * 19)) * 0.012; if (!SIM && Math.floor(t / 0.2) !== Math.floor((t - dt) / 0.2)) sfx('rattle', { vol: 0.75 }) }
-      else if (tl.knob === 'slow') lever.rotation.z = lerp(0, 0.55, ease(k / 1.6))
-      else if (tl.knob === 'key') { glint.material.opacity = Math.max(0, Math.sin(k * 6)) * 0.9 }
-      if (intent === 'LURE') a.sh.x = lerp(0, 0.95, ease(k / 0.9))
-      if (tl.window) ladderK = lerp(0.55, 0.85, ease(k / 1.2))
-    }
-    // 判定の時
-    if (t >= a.deadline) {
-      if (a.tut && a.def !== a.want) { a.t = a.deadline; return }   // チュートリアルは正しい守り方を選ぶまで待つ
-      resolve()
-    }
+    if (t >= a.appr) { a.phase = 'tell'; a.t = 0; startTell(a); if (a.tut) { say('hint', T('tut' + a.intent), '', 99) } }
+    return
+  }
+  if (a.tac.cat && cat.visible && a.phase !== 'react') { a.catT += dt; const k = ease(a.catT / 1.4); cat.position.set(lerp(DOOR.cx, -0.55, k), 0, lerp(R.z0 - 0.05, -1.35, k)); cat.scale.y = cat.userData.h * lerp(0.35, 1, ease(a.catT / 0.6)) }
+  if (a.phase === 'tell') {
+    animTell(a, dt)
+    // ばあちゃんは何をしても入る（選ばなくても 1.6 秒で入る）
+    if (a.intent === 'GRANNY' && t >= 1.6) return resolve()
+    if (!a.tut && t >= a.win) return resolve()
+    return
+  }
+  if (a.phase === 'act') {
+    a.rt += dt; animTell(a, dt)
+    if (a.rt >= ACT_BEAT) resolve()
     return
   }
   if (a.phase === 'push') {
     a.rt += dt
-    const need = a.need, k = a.tired ? 0 : 1
-    a.p = (a.rt / PUSH_DUR) * 1.6 - (a.taps * k) / need
-    doorPivot.rotation.y = -clamp(a.p, 0, 1) * 0.32 - Math.sin(a.rt * 30) * 0.01
+    const need = a.need
+    a.p = (a.rt / PUSH_DUR) * 1.6 - a.taps / need
+    doorPivot.rotation.y = -(0.1 + clamp(a.p, 0, 1) * 0.3) - Math.sin(a.rt * 30) * 0.012
     lever.rotation.z = 0.5 + Math.sin(a.rt * 30) * 0.08
     okan.visible = a.p > 0.15
-    if (a.p >= 1 && a.rt > 0.25) return finish('breach', a.tac.dad ? OD.PUSH_LOSE.RUSH : OD.PUSH_LOSE[intent === 'KEY' ? 'KEY' : 'RUSH'], 'push-lose')
-    if (a.rt >= PUSH_DUR) return finish(intent === 'KEY' ? 'ok' : 'perfect', a.tac.dad ? OD.DAD_WIN : OD.PUSH_WIN[intent === 'KEY' ? 'KEY' : 'RUSH'], 'push-win')
+    if (a.p >= 1 && a.rt > 0.25) return finish('breach', OD.PUSH_LOSE, 'push-lose')
+    if (a.rt >= PUSH_DUR) return finish('perfect', a.tac.dad ? OD.DAD_WIN : OD.PUSH_WIN, 'push-win')
     return
   }
   if (a.phase === 'react') {
@@ -360,51 +445,49 @@ function stepAttempt(dt) {
   }
 }
 
-// 守り方を当てはめる
+// 守り方を当てはめる。正しい守り方だけが守れる（押し入りは連打まで）
 function resolve() {
   const a = G.a, intent = a.intent
-  let d = a.def || 'none'
-  a.obs.knob = a.obs.knob || a.tells.knob
+  const d = a.def || 'none'
+  a.door0 = -doorPivot.rotation.y
+  hideTells(); lever.rotation.z = 0; doorMesh.position.z = 0
   if (intent === 'GRANNY') return finish('granny', OD.GRANNY_IN, 'granny')
-  // 押さえ続けると腕が限界
-  const tired = d === 'hold' && G.F >= 3
-  if (d === 'hold') G.F += a.tac.dad ? 2 : 1; else G.F = Math.max(0, G.F - 1)
-  if (d === 'sleep') G.streak++; else G.streak = 0
-  if (tired) { a.tired = true; setHero('tired'); say('hbubble', L(OD.TIRED), 'hero', 1.4); d = 'none' }
-  if (d === 'sleep' && G.streak >= 3) { G.streak = 0; return finish('breach', OD.SLEEP3, 'sleep3') }
-  const [kind, line] = OD.RES[intent][d]
-  if (kind === 'push') {
-    a.phase = 'push'; a.rt = 0; a.taps = 0; a.need = a.tac.taps || 6
-    if (a.tut) a.need = 5
-    setPaper(okan, a.tac.pose === 'dad' ? 'm_win' : a.tac.pose, 1.5); okan.position.set(DOOR.cx + 0.12, 0, R.z0 - 0.42)
+  if (intent === 'RUSH' && d === 'hold') {
+    a.phase = 'push'; a.rt = 0; a.taps = 0; a.need = a.tac.taps || 12
+    if (a.tut) { a.need = 5; say('hint', T('tutMash'), '', 99) } else say('hint', T('mash'), '', PUSH_DUR)
+    setPaper(okan, a.tac.dad ? 'm_win' : a.tac.pose, 1.5); okan.position.set(DOOR.cx + 0.12, 0, R.z0 - 0.42)
     if (a.tac.dad) { setPaper(okan2, 'dad', 1.5); okan2.position.set(DOOR.cx - 0.3, 0, R.z0 - 0.62); okan2.visible = true }
-    if (intent === 'KEY') sfx('unlock', { vol: 0.8 })
     sfx('grunt', { vol: 0.5 })
     return
   }
-  finish(kind, line, d)
+  if (d === OD.ANSWER[intent]) return finish('perfect', OD.RES[intent][d], d)
+  finish('breach', OD.RES[intent][d], d)
 }
 function finish(kind, line, how) {
   const a = G.a
-  a.phase = 'react'; a.rt = 0; a.kind = kind; a.how = how; a.reactDur = kind === 'breach' ? 3.0 : kind === 'granny' ? 3.4 : 2.5
-  if (a.tut) a.reactDur = 2.0
+  a.phase = 'react'; a.rt = 0; a.kind = kind; a.how = how; a.reactDur = kind === 'breach' ? 3.0 : kind === 'granny' ? 3.4 : 2.6
+  if (a.tut) a.reactDur = 2.8
+  if (a.quick) a.reactDur -= 0.6
   const pts = kind === 'perfect' ? 3 : kind === 'ok' ? 1 : 0
   if (!a.tut) {
     G.score += pts; if (kind === 'perfect') G.perfect++; else if (kind === 'ok') G.ok++; else if (kind === 'breach') G.breach++; else if (kind === 'granny') G.granny++
-    G.log.push({ id: a.id, intent: a.intent, def: a.def || 'none', kind, how })
+    G.log.push({ id: a.id, intent: a.intent, def: a.def || 'none', kind, how, fake: !!a.fake })
   }
   if (!SIM) Snd.loop('vac', null)
+  unsay('hbubble'); unsay('hint')
   if (line) say('bubble', L(line), a.tac.dad && how === 'push-win' ? 'dad' : '', 2.2)
-  if (!a.tut) { unsay('hbubble'); say('stamp', T(kind), kind, 1.6) }
+  // 答え合わせの付箋（勝っても負けても、印が何だったかを書く）
+  const st = OD.STICKY[a.intent]
+  say('sticky', [T(kind === 'breach' && how === 'none' ? 'late' : kind), L(st[0]), L(st[1])].join('|'), kind + (kind === 'granny' ? ' mikan' : ''), a.reactDur - 0.1)
   lever.rotation.z = 0; glint.material.opacity = 0
   // 見た目の段取り
   const intent = a.intent
   a.vis = 'none'
   if (kind === 'breach' || kind === 'granny') {
-    a.vis = intent === 'LADDER' ? 'window-in' : 'door-in'
+    a.vis = 'door-in'
     if (!SIM) { sfx(kind === 'granny' ? 'j_ok' : 'j_lose', { vol: 0.55 }); fx.shake(0.03, 0.3) }
-    if (a.vis === 'door-in') sfx('dopen', { vol: 0.8 })
-    const pose = kind === 'granny' ? 'grandma' : a.tac.dad ? 'm_win' : intent === 'LURE' ? 'm_delivery' : a.tac.pose
+    sfx('dopen', { vol: 0.8 })
+    const pose = kind === 'granny' ? 'grandma' : a.tac.dad ? 'm_win' : a.tac.pose
     setPaper(okan, pose, kind === 'granny' ? 1.15 : 1.5)
     if (a.tac.dad) { setPaper(okan2, 'dad', 1.5); okan2.visible = true }
     if (kind === 'breach') {
@@ -415,8 +498,8 @@ function finish(kind, line, how) {
   } else if (kind === 'perfect' || kind === 'ok') {
     if (!SIM) sfx(kind === 'perfect' ? 'j_win' : 'j_ok', { vol: 0.45 })
     if (how === 'push-win') { sfx('slam', { vol: 0.9 }); if (!SIM) fx.shake(0.02, 0.2) }
-    if (intent === 'PEEK' && a.def === 'sleep') { a.vis = 'peek'; setPaper(okan, 'm_peek', 1.5) }
-    if (intent === 'KEY' && a.def === 'hide') { a.vis = 'key-look'; setPaper(okan, 'm_key', 1.5); sfx('unlock', { vol: 0.8 }); sfx('dopen', { vol: 0.7, delay: 0.3 }) }
+    if (intent === 'PEEK') { a.vis = 'peek'; setPaper(okan, 'm_peek', 1.5) }
+    if (intent === 'KEY') { a.vis = 'key-look'; setPaper(okan, a.tac.pose, 1.5); sfx('unlock', { vol: 0.8 }); sfx('dopen', { vol: 0.7, delay: 0.3 }) }
   }
   if (how === 'push-lose') sfx('slam', { vol: 0.7 })
 }
@@ -437,35 +520,33 @@ function react(a, dt) {
   if (a.vis === 'door-in') {
     const leave = a.reactDur - 0.6
     if (k < leave) inDoor(1.6, ease(k / 0.5)); else { inDoor(k < a.reactDur - 0.2 ? 1.6 : 0, 1 - ease((k - leave) / 0.4)); if (!a.events.close && k > a.reactDur - 0.2) { a.events.close = 1; sfx('dclose', { vol: 0.7 }) } }
-  } else if (a.vis === 'window-in') {
-    ladderShow = 1; ladderK = 1
-    okan.visible = k > 0.4; if (okan.userData.tex !== 'm_win') setPaper(okan, 'm_win', 1.4); okan.position.set(winX - 0.1, 0.4, R.z0 + 0.7)
   } else if (a.vis === 'peek') {
-    const open = k < 1.7 ? 0.75 * ease(k / 0.5) : 0.75 * (1 - ease((k - 1.7) / 0.4))
+    const o0 = a.door0 || 0, end = a.reactDur - 0.7
+    const open = k < end ? lerp(o0, 0.75, ease(k / 0.5)) : 0.75 * (1 - ease((k - end) / 0.4))
     doorPivot.rotation.y = -open; okan.visible = open > 0.1; okan.position.set(DOOR.hx + DOOR.w - 0.12, 0, R.z0 - 0.3)
-    if (!a.events.close && k > 1.9) { a.events.close = 1; sfx('dclose', { vol: 0.3 }) }
+    if (!a.events.close && k > end + 0.2) { a.events.close = 1; sfx('dclose', { vol: 0.3 }) }
   } else if (a.vis === 'key-look') {
-    const open = k < 1.7 ? 1.2 * ease((k - 0.3) / 0.4) : 1.2 * (1 - ease((k - 1.7) / 0.4))
+    const end = a.reactDur - 0.8
+    const open = k < end ? 1.2 * ease((k - 0.3) / 0.4) : 1.2 * (1 - ease((k - end) / 0.4))
     doorPivot.rotation.y = -open; okan.visible = open > 0.1; okan.position.set(DOOR.cx + 0.05, 0, R.z0 - 0.4)
-    if (!a.events.close && k > 2.0) { a.events.close = 1; sfx('dclose', { vol: 0.6 }) }
+    if (!a.events.close && k > end + 0.3) { a.events.close = 1; sfx('dclose', { vol: 0.6 }) }
   } else {
     doorPivot.rotation.y = lerp(doorPivot.rotation.y, 0, Math.min(1, dt * 12))
     if (a.how !== 'push-win' || k > 0.15) okan.visible = false
   }
-  if (a.intent === 'LADDER' && a.vis !== 'window-in') { ladderK = Math.max(0, 0.85 - k * 0.6); if (ladderK <= 0.05) ladderShow = 0 }
   // 影が帰っていく
-  if (a.intent !== 'LADDER') a.sh.x = a.intent === 'LURE' ? lerp(0.95, 1.4, ease(k / 1.2)) : lerp(0, 1.4, ease((k - 0.6) / 1.2))
+  a.sh.x = lerp(0, 1.4, ease((k - 0.6) / 1.2))
   if (cat.visible) { cat.position.x = lerp(cat.position.x, DOOR.cx, Math.min(1, dt * 2)); cat.position.z = lerp(cat.position.z, R.z0 - 0.3, Math.min(1, dt * 2)); if (k > 1.6) cat.visible = false }
 }
 function nextAttempt() {
   const a = G.a
-  doorPivot.rotation.y = 0; lever.rotation.z = 0; okan.visible = false; okan2.visible = false; cat.visible = false; ladderShow = 0; ladderK = 0
+  doorPivot.rotation.y = 0; lever.rotation.z = 0; okan.visible = false; okan2.visible = false; cat.visible = false; hideTells()
   if (heroState !== 'idle') setHero('idle')
   loopVol('game', 0.16)
   if (a.tut) {
     G.tutStep++
-    if (G.tutStep < TUT.length) { G.a = newAttempt(TUT[G.tutStep], true); say('hint', T(TUT[G.tutStep].hint), '', 99) }
-    else { store.set('okan_tut', '1'); say('hint', T('tutGo'), '', 1.8); G.tutEnd = G.clock + 1.8; G.a = null; G.mode = 'tutgap' }
+    if (G.tutStep < TUT.length) G.a = newAttempt(TUT[G.tutStep], true)
+    else { store.set(TUT_KEY, '1'); say('hint', T('tutGo'), '', 1.8); G.tutEnd = G.clock + 1.8; G.a = null; G.mode = 'tutgap' }
     return
   }
   G.i++
@@ -474,7 +555,7 @@ function nextAttempt() {
 }
 function startTutorial() {
   G.mode = 'tut'; G.tutStep = 0; G.hour = 6.75; setHero('idle'); resetDoor(); notes.clear()
-  G.a = newAttempt(TUT[0], true); say('hint', T(TUT[0].hint), '', 99)
+  G.a = newAttempt(TUT[0], true)
 }
 
 // ============================================================ 夜（ドアの前のおにぎり）と結果
@@ -490,7 +571,7 @@ function stepEnding(dt) {
   if (SIM && t > 4.2) G.mode = 'done'
 }
 function showEnd() {
-  unsay('bubble'); unsay('stamp'); unsay('hbubble')
+  unsay('bubble'); unsay('sticky'); unsay('hbubble'); unsay('hint')
   $('eHero').src = 'img/h_onigiri.webp'; $('ePlate').src = 'img/onigiri.webp'; $('eSticky').src = 'img/sticky.webp'; $('eMemoT').textContent = L(OD.MEMO)
   show('vEnd'); const v = $('vEnd'); v.className = ''
   sfx('dopen', { vol: 0.4 })
@@ -569,13 +650,27 @@ function tally(x, px, py, n, col) {
 // ============================================================ 画面とボタン
 const VIEWS = ['vTitle', 'vHow', 'vPlay', 'vEnd', 'vResult']
 function show(id) { for (const v of VIEWS) $(v).hidden = v !== id; $('bMute').hidden = id === 'vResult' || id === 'vEnd' }
+// 遊び方の表の絵（ドアに出る印）
+const TELL_SVG = {
+  rattle: '<svg viewBox="0 0 64 64"><rect x="4" y="4" width="40" height="56" fill="#9b7048" stroke="#3a2a14" stroke-width="3"/><g transform="rotate(-28 34 34)"><rect x="12" y="30" width="24" height="8" rx="4" fill="#e2bb55" stroke="#3a2a14" stroke-width="3"/></g><circle cx="34" cy="34" r="6" fill="#e2bb55" stroke="#3a2a14" stroke-width="3"/><path d="M50 22q7 10 0 22M56 16q11 16 0 34" fill="none" stroke="#c4372b" stroke-width="3.5" stroke-linecap="round"/><path d="M10 14q-4 6 0 12" fill="none" stroke="#c4372b" stroke-width="3" stroke-linecap="round"/></svg>',
+  peek: '<svg viewBox="0 0 64 64"><rect x="6" y="4" width="50" height="56" fill="#f3dcae" stroke="#3a2a14" stroke-width="3"/><path d="M6 4L36 9v46L6 60z" fill="#9b7048" stroke="#3a2a14" stroke-width="3" stroke-linejoin="round"/><path d="M38 14q8-6 16 0v30h-16z" fill="#5a3a22"/><ellipse cx="47" cy="25" rx="6" ry="7" fill="#fff" stroke="#3a2a14" stroke-width="2.5"/><circle cx="45" cy="26" r="3" fill="#1c1712"/><path d="M40 16l12-2" stroke="#3a2a14" stroke-width="3" stroke-linecap="round"/></svg>',
+  knock: '<svg viewBox="0 0 64 64"><rect x="6" y="4" width="44" height="56" fill="#9b7048" stroke="#3a2a14" stroke-width="3"/><circle cx="40" cy="34" r="4" fill="#e2bb55" stroke="#3a2a14" stroke-width="2.5"/><g stroke="#c4372b" stroke-width="3.5" stroke-linecap="round"><path d="M22 10v6M10 18l5 4M34 18l-5 4M10 30h6M34 30h-6"/></g><circle cx="22" cy="25" r="3" fill="#c4372b"/><path d="M54 30h6M54 40h6" stroke="#3a2a14" stroke-width="3" stroke-linecap="round" opacity=".35"/></svg>',
+  key: '<svg viewBox="0 0 64 64"><rect x="10" y="6" width="22" height="52" rx="5" fill="#e2bb55" stroke="#3a2a14" stroke-width="3"/><circle cx="21" cy="24" r="4.5" fill="#1c1712"/><path d="M19 26h4v10h-4z" fill="#1c1712"/><g transform="rotate(35 21 32)"><rect x="21" y="29" width="26" height="6" fill="#f0cf6a" stroke="#3a2a14" stroke-width="2.5"/><circle cx="51" cy="32" r="8" fill="#f0cf6a" stroke="#3a2a14" stroke-width="2.5"/><circle cx="52" cy="32" r="3" fill="#fbf6ea" stroke="#3a2a14" stroke-width="2"/></g><path d="M44 8l3 6M54 12l-5 4" stroke="#c4372b" stroke-width="3" stroke-linecap="round"/></svg>',
+}
 function applyLang() {
   document.documentElement.lang = lang
   $('t1').textContent = T('title1'); $('t2').textContent = T('title2'); $('tSub').textContent = T('sub')
   $('bStart').textContent = T('start'); $('bHow').textContent = T('how'); $('bLang').textContent = T('lang')
   $('howH').textContent = T('how'); $('howLead').textContent = L(OD.HOWTO.lead); $('howWarn').textContent = L(OD.HOWTO.warn); $('bHowClose').textContent = T('close'); $('lPrivacy').textContent = T('privacy')
   $('howCredit').textContent = 'Sounds: Work With Sounds (CC BY 4.0), lonemonk (CC BY 3.0)'
-  $('howList').innerHTML = ''; for (const [a, b] of OD.HOWTO[lang]) { const li = document.createElement('li'); const s = document.createElement('span'); s.textContent = a; const bb = document.createElement('b'); bb.textContent = b; li.append(s, bb); $('howList').append(li) }
+  $('howList').innerHTML = ''
+  for (const [tell, def, a, b] of OD.HOWTO.rows) {
+    const li = document.createElement('li'); li.dataset.tell = tell
+    const t = document.createElement('div'); t.className = 'pic tell'; t.innerHTML = TELL_SVG[tell] + '<span></span>'; t.querySelector('span').textContent = L(a)
+    const d = document.createElement('div'); d.className = 'pic btn'; d.innerHTML = $('d' + def[0].toUpperCase() + def.slice(1)).querySelector('svg').outerHTML + '<span></span>'; d.querySelector('span').textContent = L(b)
+    const line = document.createElement('i'); line.className = 'link'
+    li.append(t, line, d); $('howList').append(li)
+  }
   for (const d of OD.DEF) $('d' + d[0].toUpperCase() + d.slice(1)).querySelector('span').textContent = T(d)
   $('bSkip').textContent = T('skip'); $('bAgain').textContent = T('again'); $('bSave').textContent = T('save'); $('bPost').textContent = T('post')
   const sg = window.__doorSign; if (sg) { const x = sg.userData.c.getContext('2d'); x.fillStyle = '#fbf6ea'; x.fillRect(0, 0, 256, 180); x.fillStyle = 'rgba(240,226,180,.9)'; x.fillRect(90, 0, 76, 18); x.fillStyle = '#1c1712'; x.font = '44px "Yusei Magic", sans-serif'; x.textAlign = 'center'; x.fillText(lang === 'en' ? 'KNOCK' : 'ノック', 128, 82); x.fillText(lang === 'en' ? 'FIRST' : 'してね', 128, 140); sg.userData.t.needsUpdate = true }
@@ -587,14 +682,14 @@ function firstTouch() {
 function begin() {
   firstTouch(); sfx('click', { vol: 0.6 }); show('vPlay'); G.playNo++
   G.ev1 = G.ev2 = G.ev3 = 0
-  if (!store.get('okan_tut') && !params.has('notut')) { startTutorial(); $('bSkip').hidden = false } else { $('bSkip').hidden = true; startDay() }
+  if (!store.get(TUT_KEY) && !params.has('notut')) { startTutorial(); $('bSkip').hidden = false } else { $('bSkip').hidden = true; startDay() }
 }
 $('bStart').onclick = begin
 $('bAgain').onclick = () => { setHero('idle'); begin() }
 $('bHow').onclick = () => { firstTouch(); show('vHow') }
 $('bHowClose').onclick = () => show('vTitle')
 $('bLang').onclick = () => { lang = lang === 'ja' ? 'en' : 'ja'; store.set('okan_lang', lang); applyLang() }
-$('bSkip').onclick = () => { store.set('okan_tut', '1'); $('bSkip').hidden = true; unsay('hint'); unsay('bubble'); nextReset(); startDay() }
+$('bSkip').onclick = () => { store.set(TUT_KEY, '1'); unsay('sticky'); $('bSkip').hidden = true; unsay('hint'); unsay('bubble'); nextReset(); startDay() }
 function nextReset() { doorPivot.rotation.y = 0; lever.rotation.z = 0; resetDoor(); Snd.loop('vac', null) }
 $('bMute').onclick = () => { muted = !muted; store.set('okan_mute', muted ? '1' : '0'); Snd.setMute(muted); $('bMute').classList.toggle('off', muted) }
 $('bMute').classList.toggle('off', muted)
@@ -613,7 +708,7 @@ function drawSpill() {
   const a = G.a
   if (a && a.phase !== 'quiet' && a.sh.kind !== 'none') {
     const cx = W / 2 + a.sh.x * W * 0.62
-    const sway = a.tells.steps === 'tiptoe' ? Math.sin(a.t * 3) * 5 : 0
+    const sway = 0
     const k = a.sh.kind, feet = []
     if (k === 'center' || k === 'aside') feet.push([cx - 22 + sway, 32, 150], [cx + 22 - sway, 32, 150])
     else if (k === 'big') feet.push([cx - 40, 32, 155], [cx - 4, 32, 155], [cx + 46, 70, 110])
@@ -634,7 +729,7 @@ function drawTV(t) {
   for (let i = 0; i < 4; i++) { const px = ((t * 40 + i * 60) % 230) - 20; x.fillStyle = '#7a8fb8'; x.fillRect(192 - px, 56 - i % 2 * 20, 22, 30) }
   x.fillStyle = '#f2c14e'; x.fillRect(40, 64 - Math.abs(Math.sin(t * 4)) * 22, 14, 22); tvT.needsUpdate = true
 }
-function setTimeOfDay(h) {
+function setTimeOfDay(h, left) {
   const [top, bot] = sky(h)
   const dayK = clamp((19 - h) / 2, 0, 1)
   lights.sun.intensity = 1.5 * dayK; lights.sun.color.copy(bot)
@@ -646,7 +741,7 @@ function setTimeOfDay(h) {
   scene.background = null
   const tint = night ? 0.92 : 1
   for (const m of PAPERS) m.material.color.setScalar(tint)
-  drawWindow(h); drawClock(h)
+  drawWindow(h); drawClock(h, left)
 }
 let ambNow = ''
 function updateAmb(h) {
@@ -659,17 +754,22 @@ function updateAmb(h) {
 
 function textsDom() {
   const now = G.clock
-  for (const k of ['bubble', 'hbubble', 'stamp', 'hint']) { const v = G.texts[k]; if (v && now > v.until && k !== 'hint') G.texts[k] = null; if (v && k === 'hint' && now > v.until) G.texts[k] = null }
+  for (const k of ['bubble', 'hbubble', 'sticky', 'hint']) { const v = G.texts[k]; if (v && now > v.until) G.texts[k] = null }
   // 同時に2つまで（古い物から消す）
   const live = Object.entries(G.texts).filter(([, v]) => v).sort((a, b) => a[1].born - b[1].born)
   while (live.length > 2) { const [k] = live.shift(); G.texts[k] = null }
-  const el = { bubble: $('bubble'), hbubble: $('hbubble'), stamp: $('stamp'), hint: $('hint') }
+  const el = { bubble: $('bubble'), hbubble: $('hbubble'), sticky: $('sticky'), hint: $('hint') }
   for (const k in el) {
     const v = G.texts[k], e = el[k]
     if (!v) { if (!e.hidden) e.hidden = true; continue }
-    if (e.textContent !== v.text || e.hidden) { e.textContent = v.text; e.className = (k === 'bubble' || k === 'hbubble' ? 'bubble ' : k === 'stamp' ? 'stamp ' : 'hint ') + v.cls + (k === 'hbubble' ? ' hero' : ''); e.hidden = false; void e.offsetWidth }
+    if (e.dataset.t !== v.text || e.hidden) {
+      e.dataset.t = v.text
+      if (k === 'sticky') { const [r, l1, l2] = v.text.split('|'); e.querySelector('b').textContent = r; e.querySelector('.s1').textContent = l1; e.querySelector('.s2').textContent = l2 }
+      else e.textContent = v.text
+      e.className = (k === 'bubble' || k === 'hbubble' ? 'bubble ' : k === 'sticky' ? 'sticky ' : 'hint ') + v.cls + (k === 'hbubble' ? ' hero' : ''); e.hidden = false; void e.offsetWidth
+    }
   }
-  // 吹き出しの位置（ドアの上 / 窓 / 主人公の頭）
+  // 吹き出しの位置（ドアの上 / 主人公の頭）
   const place = (e, world, side) => {
     if (e.hidden) return
     const v = world.clone().project(camera), W = innerWidth, H = innerHeight
@@ -679,19 +779,17 @@ function textsDom() {
     left = clamp(left, 12, W - w - 12); const top = clamp(py - h, 64, H - h - 140)
     e.style.left = Math.round(left) + 'px'; e.style.top = Math.round(top) + 'px'
   }
-  const a = G.a
-  place(el.bubble, a && a.intent === 'LADDER' ? new THREE.Vector3(winX - 0.3, winY + 0.4, R.z0) : new THREE.Vector3(DOOR.cx - 0.1, 2.0, R.z0 + 0.1))
+  place(el.bubble, new THREE.Vector3(DOOR.cx - 0.1, 2.0, R.z0 + 0.1))
   const hp = hero.position.clone(); hp.y += hero.userData.h * (heroState === 'sleep' ? 1.3 : 0.95)
   place(el.hbubble, hp, 'left')
 }
 function defsDom() {
   const a = G.a
-  const can = a && a.phase === 'approach'
+  const can = a && a.phase === 'tell' && !a.def
   for (const d of OD.DEF) { const b = $('d' + d[0].toUpperCase() + d.slice(1)); b.classList.toggle('on', !!a && a.def === d); b.classList.toggle('lock', !can && !(a && a.phase === 'push' && d === 'hold')); b.classList.toggle('mash', !!a && a.phase === 'push' && d === 'hold') }
-  $('dSleep').classList.toggle('warn', G.streak >= 2); $('dHold').classList.toggle('warn', G.F >= 2)
   // チュートリアルの指
   let f = $('finger')
-  const want = a && a.tut && a.phase === 'approach' && a.t >= a.deadline - 0.01 && a.def !== a.want ? a.want : a && a.tut && a.phase === 'push' ? 'hold' : null
+  const want = a && a.tut && a.phase === 'tell' && a.t >= 0.5 && !a.def ? a.want : a && a.tut && a.phase === 'push' ? 'hold' : null
   if (want) {
     if (!f) { f = document.createElement('div'); f.id = 'finger'; f.className = 'finger'; f.innerHTML = '<svg viewBox="0 0 44 44"><path d="M16 4c2 0 4 2 4 4v12l2-1c2-1 4 0 5 1l6 3c2 1 3 3 3 5l-2 10H14L8 28c-1-2 0-4 2-4s3 1 4 2V8c0-2 0-4 2-4z" fill="#fff" stroke="#222" stroke-width="2.5"/></svg>'; $('vPlay').append(f) }
     const r = $('d' + want[0].toUpperCase() + want.slice(1)).getBoundingClientRect(); f.style.left = (r.left + r.width / 2 - 8) + 'px'; f.style.top = (r.top + r.height / 2 - 10) + 'px'; f.hidden = false
@@ -702,10 +800,13 @@ const STEP = 1 / 60
 let last = performance.now(), acc = 0, tvT0 = 0
 function logic(dt) {
   G.clock += dt
+  // 印が出ている間はドアに寄る（ゲームの時間で進める）
+  const zoomOn = !!G.a && G.a.phase === 'tell' && (G.mode === 'play' || G.mode === 'tut')
+  camK = clamp(camK + (zoomOn ? 1 : -1) * dt / (zoomOn ? 0.32 : 0.4), 0, 1)
   if (G.mode === 'play' || G.mode === 'tut') {
     if (G.bot && G.a && !SIM) G.bot(api, G.botSt || (G.botSt = { r: mulberry(5) }))
     if (G.a) stepAttempt(dt)
-    if (G.mode === 'play' && G.a) { const a = G.a, exp = a.quiet + a.deadline + 2.6; G.hour = 7 + 15 * (G.i + clamp((a.phase === 'quiet' ? a.t : a.quiet + (a.phase === 'approach' ? a.t : a.deadline + (a.rt || 0))) / exp, 0, 1)) / N_SLOTS }
+    if (G.mode === 'play' && G.a) { const a = G.a, exp = a.quiet + a.appr + Math.min(a.win, 3) + 3, el = a.phase === 'quiet' ? a.t : a.phase === 'approach' ? a.quiet + a.t : a.phase === 'tell' ? a.quiet + a.appr + Math.min(a.t, 3) : a.quiet + a.appr + Math.min(a.win, 3) * 0.6 + (a.rt || 0); G.hour = 7 + 15 * (G.i + clamp(el / exp, 0, 1)) / N_SLOTS }
   } else if (G.mode === 'tutgap') { if (G.clock > G.tutEnd) { $('bSkip').hidden = true; startDay() } }
   else if (G.mode === 'end') { G.hour = Math.min(22, G.hour + dt); stepEnding(dt) }
 }
@@ -714,11 +815,14 @@ function render(dtR) {
   // 主人公のゆれ
   const b = hero.userData.base || [0, 0, 0]
   const bob = heroState === 'idle' ? Math.abs(Math.sin(G.clock * 2.2)) * 0.015 : heroState === 'hold' ? Math.sin(G.clock * 30) * 0.008 * (G.a && G.a.phase === 'push' ? 2 : 0.3) : heroState === 'busted' ? Math.abs(Math.sin(G.clock * 8)) * 0.05 : 0
-  hero.position.set(b[0] + (heroState === 'hold' && G.F >= 2 ? Math.sin(G.clock * 40) * 0.01 : 0), b[1] + bob, b[2])
+  hero.position.set(b[0], b[1] + bob, b[2])
   // 切り絵はカメラの方を向く（縦軸だけ）
   for (const m of PAPERS) { if (!m.visible) continue; m.rotation.y = Math.atan2(camera.position.x - m.position.x, camera.position.z - m.position.z) * (heroState === 'sleep' && m === hero ? 0.3 : 1) }
-  camera.position.copy(CAM.p); camera.lookAt(CAM.t)
-  setTimeOfDay(G.hour); drawSpill(); drawTV(tvT0)
+  // 印が出ている間はドアに寄る
+  const a = G.a
+  const ck = ease(camK); camP.lerpVectors(CAM.p, CAMZ.p, ck); camT.lerpVectors(CAM.t, CAMZ.t, ck)
+  camera.position.copy(camP); camera.lookAt(camT)
+  setTimeOfDay(G.hour, a && a.phase === 'tell' && !a.tut && a.intent !== 'GRANNY' ? clamp(1 - a.t / a.win, 0, 1) : null); drawSpill(); drawTV(tvT0)
   hallLight.intensity = 2.2; gapLine.material.color.set(G.hour < 17.5 ? '#ffe2b0' : '#ffd08a')
   look.update(); fx.update(dtR); fx.applyCamera()
   renderer.render(scene, camera)
@@ -735,9 +839,9 @@ function loop(now) {
 // ============================================================ 検証用の窓口と、bot を早回しで回す sim
 function simRun(bot, seed, opt = {}) {
   SIM = true; const keep = { mode: G.mode, a: G.a }
-  G.texts = { bubble: null, hbubble: null, stamp: null, hint: null }
+  G.texts = { bubble: null, hbubble: null, sticky: null, hint: null }
   params.delete('seed'); G.playNo = 0
-  G.seed = seed; G.day = makeDay(seed); G.i = 0; G.F = 0; G.streak = 0; G.score = 0; G.perfect = 0; G.ok = 0; G.breach = 0; G.granny = 0; G.log = []
+  G.seed = seed; G.day = makeDay(seed); G.i = 0; G.score = 0; G.perfect = 0; G.ok = 0; G.breach = 0; G.granny = 0; G.log = []
   G.mode = 'play'; G.a = newAttempt(G.day[0]); G.ev1 = G.ev2 = G.ev3 = 0
   const st = { r: mulberry(seed * 7 + 1) }
   let n = 0
@@ -747,7 +851,7 @@ function simRun(bot, seed, opt = {}) {
   return res
 }
 const api = {
-  get state() { const a = G.a; return { mode: G.mode, i: G.i, n: G.day ? G.day.length : 0, phase: a && a.phase, t: a && a.t, def: a && a.def, deadline: a && a.deadline, intent: a && a.intent, id: a && a.id, score: G.score, breach: G.breach, perfect: G.perfect, ok: G.ok, granny: G.granny, F: G.F, streak: G.streak, hour: G.hour, tut: a && a.tut, taps: a && a.taps, p: a && a.p, heroState } },
+  get state() { const a = G.a; return { mode: G.mode, i: G.i, n: G.day ? G.day.length : 0, phase: a && a.phase, t: a && a.t, def: a && a.def, win: a && a.win, intent: a && a.intent, id: a && a.id, fake: a && a.fake, quick: a && a.quick, score: G.score, breach: G.breach, perfect: G.perfect, ok: G.ok, granny: G.granny, hour: G.hour, tut: a && a.tut, taps: a && a.taps, p: a && a.p, heroState } },
   tells, choose, tap, makeDay, simRun, OD,
   texts: () => Object.values(G.texts).filter(Boolean).map(v => v.text),
   day: () => G.day,
@@ -758,11 +862,20 @@ const api = {
     render() { render(0) },
     // 台本どおりに状態を作る（撮影用）
     set(o) { Object.assign(G, o) },
-    G, spill, spillC, scene, camera, CAM, frame,
+    G, spill, spillC, scene, camera, CAM, CAMZ, frame, ono,
     showResult, setHero,
+    // 印の書き文字・時計・鍵の画面上の位置と大きさ（px）。カメラが寄っているかも返す
+    tellScreen() {
+      const W = innerWidth, H = innerHeight
+      const pr = (v3) => { const v = v3.clone().project(camera); return { x: Math.round((v.x + 1) / 2 * W), y: Math.round((1 - v.y) / 2 * H) } }
+      const half = new THREE.Vector3(); ono.getWorldPosition(half)
+      const right = half.clone(); const cr = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0); right.addScaledVector(cr, ono.scale.x / 2)
+      const c = pr(half), r = pr(right)
+      return { W, H, camK, vis: G.a && G.a.obs.vis, ono: ono.visible ? { x: c.x, y: c.y, w: Math.abs(r.x - c.x) * 2 } : null, clock: pr(clockM.position), knob: pr(lever.getWorldPosition(new THREE.Vector3())), key: keySpr.visible ? pr(keySpr.position) : null }
+    },
     endNow() { beginEnding(); G.endT = 4.1 },
     // 手口の並びを決めて始める（撮影・テスト用）
-    force(ids, i = 0) { doorPivot.rotation.y = 0; lever.rotation.z = 0; G.day = ids.map((id, k) => ({ id, intent: OD.TACTICS[id].intent, line: id === 'lure' ? OD.LURES[Math.min(4, k)] : OD.TACTICS[id].lines[0] })); G.i = i; G.mode = 'play'; G.a = newAttempt(G.day[i]); resetDoor(); setHero('idle'); show('vPlay') },
+    force(ids, i = 0, o = {}) { doorPivot.rotation.y = 0; lever.rotation.z = 0; camK = 0; G.day = Array(i).fill(ids[0]).concat(ids).map(id => ({ id, intent: OD.TACTICS[id].intent, line: o.line || OD.TACTICS[id].lines[0], quick: !!o.quick })); G.texts = { bubble: null, hbubble: null, sticky: null, hint: null }; G.i = i; G.mode = 'play'; G.a = newAttempt(G.day[i]); resetDoor(); setHero('idle'); show('vPlay') },
   },
 }
 window.okan = api
@@ -770,8 +883,8 @@ window.okan = api
 // ============================================================ 起動
 applyLang()
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => applyLang())
-const PRE = ['h_idle', 'h_hold', 'h_shout', 'h_sleep', 'h_hide']
-const LATER = ['h_tired', 'h_busted', 'h_onigiri', 'h_win', 'm_knock', 'm_tray', 'm_peek', 'm_laundry', 'm_phone', 'm_key', 'm_delivery', 'm_ladder', 'm_cat', 'm_vacuum', 'm_win', 'm_down', 'dad', 'grandma', 'cat', 'onigiri', 'sticky']
+const PRE = ['h_idle', 'h_hold', 'h_shout', 'h_sleep', 'h_hide', 'm_peek']
+const LATER = ['h_busted', 'h_onigiri', 'h_win', 'm_knock', 'm_tray', 'm_laundry', 'm_phone', 'm_key', 'm_delivery', 'm_cat', 'm_vacuum', 'm_win', 'm_down', 'dad', 'grandma', 'cat', 'onigiri', 'sticky']
 let readyDone = false
 function ready() {
   if (readyDone) return; readyDone = true

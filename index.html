@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>おかんを部屋に入れるな | ドアを守るバカゲー</title>
-<meta name="description" content="朝7時から夜10時まで、自分の部屋のドアを守るバカゲー。ご飯、洗濯物、宅配便のふり、合鍵、おとん。おかんの手口を足音とドアノブで読んで、押さえる・寝たふり・返事・隠れるで守り切れ。ダウンロードなしでスマホのブラウザで遊べる。">
+<meta name="description" content="朝7時から夜10時まで、自分の部屋のドアを守るバカゲー。ノブがガチャガチャなら押さえる、すき間から目がのぞいたら寝たふり、ノックだけなら返事、合鍵が刺さったら隠れる。台詞はうそをつくのでドアを見て守り切れ。ダウンロードなしでスマホのブラウザで遊べる。">
 <meta property="og:type" content="website">
 <meta property="og:title" content="おかんを部屋に入れるな">
-<meta property="og:description" content="「ご飯できたよー」なのに、足音がやけに静か。おかんの手口を足音とドアノブで読んで、夜まで部屋を守り切れ。ダウンロードなしのバカゲー。">
-<meta property="og:image" content="https://tom3games.github.io/okan-door/og.png?v=1">
+<meta property="og:description" content="「ご飯できたよー」なのに、ノブがガチャガチャ。台詞よりドアを見て、夜まで部屋を守り切れ。ダウンロードなしのバカゲー。">
+<meta property="og:image" content="https://tom3games.github.io/okan-door/og.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://tom3games.github.io/okan-door/">
@@ -18,12 +18,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=Yusei+Magic&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 <script>window.__bootN=0;window.__bootStep=function(){var n=++window.__bootN,b=document.getElementById('bootBar');if(b)b.style.transform='scaleX('+Math.min(1,n/9)+')'}</script>
 <link rel="modulepreload" href="vendor/three.core.min.js" onload="__bootStep()">
 <link rel="modulepreload" href="vendor/three.module.min.js" onload="__bootStep()">
-<link rel="modulepreload" href="js/game.js?v=1" onload="__bootStep()">
+<link rel="modulepreload" href="js/game.js?v=2" onload="__bootStep()">
 <link rel="modulepreload" href="js/look.js?v=1" onload="__bootStep()">
 <link rel="preload" as="image" href="img/h_idle.webp" onload="__bootStep()">
 </head>
@@ -53,7 +53,7 @@
 <main id="vPlay" hidden>
   <div id="bubble" class="bubble" hidden></div>
   <div id="hbubble" class="bubble hero" hidden></div>
-  <div id="stamp" class="stamp" hidden></div>
+  <div id="sticky" class="sticky" hidden><b></b><span class="s1"></span><span class="s2"></span></div>
   <div id="hint" class="hint" hidden></div>
   <button id="bSkip" class="skip" hidden></button>
   <div id="defs">
@@ -106,8 +106,8 @@ setTimeout(function(){if(window.__jsUp)return;var d=document.createElement('div'
 </script>
 <script src="tm.js?v=1" data-game="okan-door"></script>
 <script src="sfx.js?v=1"></script>
-<script src="data.js?v=1"></script>
-<script type="module" src="js/game.js?v=1"></script>
+<script src="data.js?v=2"></script>
+<script type="module" src="js/game.js?v=2"></script>
 <script src="support.js?v=2" data-ja="おにぎり" data-en="a rice ball"></script>
 </body>
 </html>

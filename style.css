@@ -30,11 +30,19 @@ main{position:fixed;inset:0;height:100svh;overflow:hidden;z-index:3}
 .howpaper{background:var(--paper);width:min(400px,100%);max-height:calc(100svh - 32px);padding:18px 18px 12px;transform:rotate(.6deg);display:flex;flex-direction:column;gap:8px;
   background-image:repeating-linear-gradient(transparent 0 29px,rgba(90,120,170,.2) 29px 30px)}
 .howpaper h2{font-family:"Yusei Magic",sans-serif;font-weight:400;font-size:22px}
-.howpaper .lead{font-size:14px;line-height:1.5;color:var(--red)}
-#howList{list-style:none;display:flex;flex-direction:column;gap:2px}
-#howList li{display:flex;justify-content:space-between;gap:8px;font-size:14px;line-height:1.35;padding:5px 0;border-bottom:1px dashed rgba(60,50,40,.25)}
-#howList li b{font-weight:600;color:#1f4c87;white-space:nowrap}
-.howpaper .warn{font-size:13px;line-height:1.5;color:#5d5246}
+.howpaper .lead{font-size:14px;line-height:1.5;color:var(--red);white-space:pre-line}
+#howList{list-style:none;display:flex;flex-direction:column;gap:4px}
+#howList li{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px dashed rgba(60,50,40,.25)}
+#howList .pic{display:flex;align-items:center;gap:6px;font-size:clamp(13px,3.7vw,16px);line-height:1.25;min-width:0}
+#howList .pic span{white-space:nowrap}
+html[lang=en] #howList .pic span{white-space:normal}
+#howList .pic svg{flex:none;width:clamp(40px,13vw,58px);height:clamp(40px,13vw,58px)}
+#howList .tell{flex:1.1}
+#howList .btn{flex:1;color:#1f4c87}
+#howList .btn svg{background:var(--paper);border-radius:8px;box-shadow:0 0 0 2px #fff,0 2px 5px rgba(0,0,0,.3);padding:3px}
+#howList .link{flex:none;width:12px;height:2px;background:#3a2a14;border-radius:1px;position:relative}
+#howList .link::after{content:"";position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left:6px solid #3a2a14;border-right:0}
+.howpaper .warn{font-size:13px;line-height:1.5;color:#5d5246;white-space:pre-line}
 .small2{font-size:18px;min-height:46px;min-width:150px;align-self:center;margin-top:4px}
 .foot{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:#7a6e60;text-align:center}
 .foot a{display:inline-flex;align-items:center;min-height:38px;padding:0 10px;color:#1f4c87;font-size:13px}
@@ -49,11 +57,17 @@ main{position:fixed;inset:0;height:100svh;overflow:hidden;z-index:3}
 .bubble.dad{background:#f1f1e6}
 html[lang=en] .bubble{white-space:normal;max-width:72vw}
 @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
-.stamp{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 12svh);transform:translateX(-50%) rotate(-4deg);font-family:"Yusei Magic",sans-serif;font-size:clamp(26px,8vw,36px);padding:14px 22px 10px;color:var(--red);background:#ffe36e;box-shadow:2px 6px 10px rgba(0,0,0,.35);animation:stampIn .2s ease-out}
-.stamp::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:rgba(0,0,0,.06)}
-.stamp.perfect{color:#1f6a3a;background:#bfe8a8}.stamp.ok{color:#1f4c87;background:#bfe0ff}.stamp.granny{color:#8a5a1f;background:#ffd2a8}
-@keyframes stampIn{from{transform:translateX(-50%) translateY(-30px) rotate(-12deg);opacity:0}to{transform:translateX(-50%) rotate(-4deg);opacity:1}}
-.hint{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 132px);text-align:center;font-size:clamp(16px,4.6vw,19px);color:#fff;text-shadow:0 2px 0 #000,0 0 8px #000}
+/* 答え合わせの付箋（毎回。印の名前と正しい守り方） */
+.sticky{position:absolute;right:12px;bottom:calc(env(safe-area-inset-bottom) + 124px);width:min(66vw,250px);padding:10px 14px 12px;background:#ffe98a;color:#2a2118;transform:rotate(2.5deg);box-shadow:1px 5px 9px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:2px;animation:stickIn .22s ease-out}
+.sticky::before{content:"";position:absolute;left:50%;top:-9px;width:64px;height:18px;margin-left:-32px;background:rgba(240,226,180,.85);transform:rotate(-3deg)}
+.sticky b{font-family:"Yusei Magic",sans-serif;font-weight:400;font-size:clamp(24px,7vw,30px);line-height:1.1;color:var(--red)}
+.sticky .s1{font-size:clamp(17px,4.8vw,20px);line-height:1.25;font-weight:600}
+.sticky .s2{font-size:clamp(15px,4.2vw,17px);line-height:1.25;color:#1f4c87}
+.sticky.perfect{background:#cdeeb0}.sticky.perfect b{color:#1f6a3a}
+.sticky.granny{background:#ffd9b0}.sticky.granny b{color:#8a5a1f}
+.sticky.mikan::after{content:"";position:absolute;right:-8px;top:-16px;width:46px;height:46px;background:url(img/mikan.webp) center/contain no-repeat;transform:rotate(12deg)}
+@keyframes stickIn{from{transform:translateY(16px) rotate(8deg);opacity:0}to{transform:rotate(2.5deg);opacity:1}}
+.hint{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 128px);text-align:center;font-family:"Yusei Magic",sans-serif;font-size:clamp(22px,6.6vw,28px);line-height:1.2;color:#fff;text-shadow:0 3px 0 #000,0 0 10px #000,0 0 3px #000}
 .skip{position:absolute;right:12px;top:calc(env(safe-area-inset-top) + 10px);min-height:38px;padding:0 14px;border-radius:19px;background:rgba(20,16,12,.6);color:#fff;font-size:13px}
 #defs{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;gap:6px;padding:0 10px calc(env(safe-area-inset-bottom) + 12px);pointer-events:none}
 .def{flex:1;max-width:96px;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--paper);border-radius:12px;padding:6px 2px 7px;
@@ -64,9 +78,7 @@ html[lang=en] .bubble{white-space:normal;max-width:72vw}
 .def:active{transform:scale(.94)}
 .def.mash{animation:mash .18s infinite alternate}
 @keyframes mash{from{transform:scale(1)}to{transform:scale(1.08)}}
-.def.lock{opacity:.55}
-.def.warn svg path[stroke="#3b5c8f"]{stroke:#d22}
-.def.warn::after{content:"";position:absolute;top:6px;right:8px;width:10px;height:10px;border-radius:50%;background:#d22;box-shadow:0 0 0 2px #fff}
+.def.lock{opacity:.6;filter:saturate(.6)}
 .def{position:relative}
 .finger{position:absolute;width:44px;height:44px;pointer-events:none;z-index:4;animation:tap 1s infinite}
 @keyframes tap{0%,100%{transform:translate(0,0)}50%{transform:translate(4px,8px)}}
@@ -108,6 +120,8 @@ html[lang=en] .bubble{white-space:normal;max-width:72vw}
 #bootErr{position:fixed;left:8px;right:8px;bottom:8px;z-index:30;background:#fff;color:#b00;font:12px/1.4 monospace;white-space:pre-wrap;padding:10px;border-radius:8px}
 @media (max-height:700px){
   .def{min-height:82px}.def svg{width:38px;height:38px}
-  .hint{bottom:calc(env(safe-area-inset-bottom) + 112px)}
+  .hint{bottom:calc(env(safe-area-inset-bottom) + 108px)}
+  .sticky{bottom:calc(env(safe-area-inset-bottom) + 104px);padding:8px 12px 10px}
+  #howList .pic svg{width:38px;height:38px}
   .sign{padding:16px 18px 12px}.go{min-height:52px}
 }

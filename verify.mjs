@@ -46,27 +46,42 @@ const fit = q => q.evaluate(() => {
   return { H, over: over.slice(0, 6) }
 })
 const textsOk = p => p.evaluate(() => {
-  const els = ['bubble', 'hbubble', 'stamp', 'hint'].map(id => document.getElementById(id)).filter(e => !e.hidden)
+  const els = ['bubble', 'hbubble', 'sticky', 'hint'].map(id => document.getElementById(id)).filter(e => !e.hidden)
   const W = innerWidth, H = innerHeight
   const out = els.filter(e => { const r = e.getBoundingClientRect(); return r.left < 0 || r.right > W || r.top < 0 || r.bottom > H })
   return { n: els.length, texts: els.map(e => e.textContent), out: out.map(e => e.id) }
 })
-// 画面の巡り: タイトル → 遊び中 → 押し合い → 夜 → 結果
-async function visit(q, name) {
+// 本物の指で押す（要素の中心の座標を押す。内部の関数は呼ばない）
+async function press(q, sel, touch) {
+  const r = await q.evaluate(s => { const b = document.querySelector(s).getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, ok: b.width > 30 && b.top >= 0 && b.bottom <= innerHeight } }, sel)
+  if (!r.ok) throw new Error('button off screen ' + sel + JSON.stringify(r))
+  if (touch) await q.touchscreen.tap(r.x, r.y); else await q.mouse.click(r.x, r.y)
+  return r
+}
+const BTN = { hold: '#dHold', sleep: '#dSleep', reply: '#dReply', hide: '#dHide' }
+// 印が出るまで（＋n 秒）進める
+const toTell = (q, n = 0.9) => q.evaluate(n => { let k = 0; while (!(okan.state.phase === 'tell' && okan.state.t >= n) && k++ < 1200) okan.dbg.step(1); return okan.state }, n)
+// 画面の巡り: タイトル → 遊び方 → 印（寄り）→ 答え合わせ → 押し合い → 夜 → 結果
+async function visit(q, name, touch) {
   const views = {}
   views.title = await fit(q); await q.screenshot({ path: `${ROOT}/shots/fit-${name}-title.png` })
-  await q.click('#bHow'); views.how = await fit(q); await q.screenshot({ path: `${ROOT}/shots/fit-${name}-how.png` })
-  await q.click('#bHowClose')
-  await q.evaluate(() => { localStorage.setItem('okan_tut', '1') }); await q.click('#bStart')
-  await q.evaluate(() => { okan.dbg.pause(); okan.dbg.force(['vacuum', 'knock']); okan.dbg.step(60 * 4.4) })
-  views.play = await fit(q); const tx = await textsOk(q); await q.screenshot({ path: `${ROOT}/shots/fit-${name}-play.png` })
-  await q.evaluate(() => { okan.choose('hold'); okan.dbg.step(60 * 2.2); for (let i = 0; i < 3; i++) { okan.tap(); okan.dbg.step(8) } })
+  await press(q, '#bHow', touch); views.how = await fit(q); await q.screenshot({ path: `${ROOT}/shots/fit-${name}-how.png` })
+  await press(q, '#bHowClose', touch)
+  await q.evaluate(() => { localStorage.setItem('okan_tut2', '1') }); await press(q, '#bStart', touch)
+  await q.evaluate(() => { okan.dbg.pause(); okan.dbg.force(['vacuum', 'knock']) })
+  await toTell(q, 0.9)
+  views.tell = await fit(q); const tx = await textsOk(q); const ts = await q.evaluate(() => okan.dbg.tellScreen()); await q.screenshot({ path: `${ROOT}/shots/fit-${name}-tell.png` })
+  await press(q, '#dHold', touch); await q.evaluate(() => okan.dbg.step(40))
+  for (let i = 0; i < 4; i++) { await press(q, '#dHold', touch); await q.evaluate(() => okan.dbg.step(9)) }
   views.push = await fit(q); await q.screenshot({ path: `${ROOT}/shots/fit-${name}-push.png` })
-  await q.evaluate(() => { okan.dbg.G.score = 20; okan.dbg.G.perfect = 6; okan.dbg.G.ok = 2; okan.dbg.G.breach = 3; okan.dbg.endNow(); okan.dbg.pause(false) })
+  for (let i = 0; i < 12; i++) { await press(q, '#dHold', touch); await q.evaluate(() => okan.dbg.step(9)) }
+  await q.evaluate(() => okan.dbg.step(30))
+  views.answer = await fit(q); const tx2 = await textsOk(q); await q.screenshot({ path: `${ROOT}/shots/fit-${name}-answer.png` })
+  await q.evaluate(() => { okan.dbg.G.score = 21; okan.dbg.G.perfect = 7; okan.dbg.G.ok = 0; okan.dbg.G.breach = 3; okan.dbg.endNow(); okan.dbg.pause(false) })
   await q.waitForTimeout(3000); views.end = await fit(q); await q.screenshot({ path: `${ROOT}/shots/fit-${name}-end.png` })
   await q.waitForFunction(() => !document.getElementById('vResult').hidden, null, { timeout: 9000 }); await q.waitForTimeout(500)
   views.result = await fit(q); await q.screenshot({ path: `${ROOT}/shots/fit-${name}-result.png` })
-  return { views, tx }
+  return { views, tx, tx2, ts }
 }
 
 const browser = await chromium.launch(MUTE_LAUNCH)
@@ -97,54 +112,58 @@ await t('題と OGP に本人を笑う言い方が無い', async () => {
   const bad = ['ニート', '甘え', '引きこもり', 'ひきこもり', '不登校', '死', '殺', '自殺', 'クズ', 'ダメ人間'].filter(w => html.includes(w))
   expect(!bad.length, bad.join(','))
 })
-await t('台詞は14字以内（同時に読める長さ）', async () => {
+await t('台詞は14字以内・ヒントと付箋は12字以内', async () => {
   const r = await p.evaluate(() => {
-    const OD = okan.OD, all = []
-    for (const k in OD.TACTICS) for (const l of OD.TACTICS[k].lines || []) all.push(l[0])
-    for (const l of OD.LURES) all.push(l[0])
-    for (const k in OD.RES) for (const d in OD.RES[k]) if (OD.RES[k][d][1]) all.push(OD.RES[k][d][1][0])
-    for (const x of [OD.TIRED, OD.SLEEP3, OD.GRANNY_IN, OD.REPLY, OD.NIGHT, OD.DAD_WIN, ...Object.values(OD.PUSH_WIN), ...Object.values(OD.PUSH_LOSE)]) all.push(x[0])
-    for (const k of ['tut1', 'tut2', 'tut3', 'tutGo']) all.push(OD.T[k][0])
-    return all.filter(s => [...s].length > 14)
+    const OD = okan.OD, all = [], short = []
+    for (const k in OD.TACTICS) for (const l of OD.TACTICS[k].lines) all.push(l[0])
+    for (const l of OD.FAKES) all.push(l[0])
+    for (const k in OD.RES) for (const d in OD.RES[k]) all.push(OD.RES[k][d][0])
+    for (const x of [OD.GRANNY_IN, OD.REPLY, OD.NIGHT, OD.DAD_WIN, OD.PUSH_WIN, OD.PUSH_LOSE]) all.push(x[0])
+    for (const k of ['tutCALL', 'tutRUSH', 'tutPEEK', 'tutKEY', 'tutMash', 'tutGo']) short.push(OD.T[k][0])
+    for (const k in OD.STICKY) for (const l of OD.STICKY[k]) short.push(l[0])
+    return [...all.filter(s => [...s].length > 14), ...short.filter(s => [...s].length > 12)]
   })
   expect(!r.length, r.join(' / '))
+})
+await t('手口4つと守り方4つが1対1（印も4つ）', async () => {
+  const r = await p.evaluate(() => { const O = okan.OD, ints = ['RUSH', 'PEEK', 'CALL', 'KEY']; return { d: ints.map(i => O.ANSWER[i]), v: ints.map(i => O.TELL[i]), tacts: Object.values(O.TACTICS).map(x => x.intent) } })
+  expect(new Set(r.d).size === 4 && new Set(r.v).size === 4 && r.tacts.every(i => ['RUSH', 'PEEK', 'CALL', 'KEY', 'GRANNY'].includes(i)), JSON.stringify(r))
 })
 await t('同じ種なら同じ1日（乱数で当たり外れを決めない）', async () => {
   const r = await p.evaluate(() => [JSON.stringify(okan.makeDay(42)), JSON.stringify(okan.makeDay(42)), JSON.stringify(okan.makeDay(43))])
   expect(r[0] === r[1] && r[0] !== r[2], 'same seed differs')
 })
-await t('1日の中身: 11回・最初は声かけ・合鍵は4回目以降・言い訳は後ほど雑', async () => {
-  const r = await p.evaluate(() => { const bad = []; for (let s = 1; s < 200; s++) { const d = okan.makeDay(s); if (d.length !== 11 || d[0].intent !== 'CALL' || d.findIndex(x => x.intent === 'KEY') < 3) bad.push(s); const lures = d.filter(x => x.intent === 'LURE').map(x => okan.OD.LURES.findIndex(l => l[0] === x.line[0])); for (let i = 1; i < lures.length; i++) if (lures[i] < lures[i - 1]) bad.push('lure' + s) } return bad })
-  expect(!r.length, r.slice(0, 5).join(','))
+await t('1日の中身: 11回・最初は声かけ・朝5回で4つの手口が出る・うその台詞は6回目から・続けて来るのは8回目から', async () => {
+  const r = await p.evaluate(() => { const bad = []; let fakes = 0, quick = 0; for (let s = 1; s < 300; s++) { const d = okan.makeDay(s); if (d.length !== 11 || d[0].intent !== 'CALL' || new Set(d.slice(0, 5).map(x => x.intent)).size < 4) bad.push(s); d.forEach((x, i) => { if (x.fake) { fakes++; if (i < 5) bad.push('fake' + s) } if (x.quick) { quick++; if (i < 7) bad.push('quick' + s) } }) } return { bad: bad.slice(0, 5), fakes, quick } })
+  expect(!r.bad.length && r.fakes > 300 && r.quick > 300, JSON.stringify(r)); return { fakes: r.fakes, quick: r.quick }
 })
-await t('同じ台詞で正解が変わる（ご飯・洗濯物）', async () => {
-  const r = await p.evaluate(() => { const T = okan.OD.TACTICS; return [T.gohan_call.intent, T.gohan_peek.intent, T.vacuum_lie.intent, T.laundry_call.intent, T.laundry_peek.intent] })
-  expect(r.join() === 'CALL,PEEK,RUSH,CALL,PEEK', r.join())
-})
-// ---- 遊びの通し（初めての人: チュートリアルから）
+// ---- 遊びの通し（初めての人: チュートリアルから。全部本物の指で押す）
 const q = await open(browser)
-await t('はじめる → 初回はチュートリアル（ヒントと指が出る）', async () => {
-  await q.click('#bStart'); await q.evaluate(() => okan.dbg.pause()); await q.evaluate(() => okan.dbg.step(60 * 6.5))
-  const r = await q.evaluate(() => ({ s: okan.state, hint: document.getElementById('hint').textContent, finger: !!document.getElementById('finger') && !document.getElementById('finger').hidden, skip: !document.getElementById('bSkip').hidden }))
-  expect(r.s.tut && r.s.phase === 'approach' && r.hint.includes('返事') && r.finger && r.skip, JSON.stringify(r)); return r.hint
+await t('はじめる → 初回は4つの印を1回ずつ見せる案内（ヒント・指・とばす）', async () => {
+  await press(q, '#bStart'); await q.evaluate(() => okan.dbg.pause()); await toTell(q, 0.8)
+  const r = await q.evaluate(() => ({ s: okan.state, hint: document.getElementById('hint').textContent, finger: !!document.getElementById('finger') && !document.getElementById('finger').hidden, skip: !document.getElementById('bSkip').hidden, ts: okan.dbg.tellScreen() }))
+  expect(r.s.tut && r.s.intent === 'CALL' && r.hint === 'ノックだけなら返事' && r.finger && r.skip && r.ts.vis === 'knock', JSON.stringify(r)); return r.hint
 })
-await t('チュートリアル: 違う守り方は受け付けず、正しい方で進む', async () => {
-  const r = await q.evaluate(() => { const a = okan.choose('sleep'); okan.dbg.step(30); const ph = okan.state.phase; const b = okan.choose('reply'); okan.dbg.step(60 * 2.6); return { a, ph, b, s: okan.state } })
-  expect(r.a === false && r.ph === 'approach' && r.b === true && r.s.id === 'vacuum', JSON.stringify(r))
+await t('案内: 違うボタンは受け付けず、正しいボタンで進む（付箋で答え合わせ）', async () => {
+  await press(q, '#dSleep'); await q.evaluate(() => okan.dbg.step(30)); const a = await q.evaluate(() => okan.state)
+  await press(q, '#dReply'); await q.evaluate(() => okan.dbg.step(60 * 0.9))
+  const r = await q.evaluate(() => ({ s: okan.state, sticky: document.getElementById('sticky').innerText }))
+  expect(a.phase === 'tell' && !a.def && r.s.def === 'reply' && /ノックだけ/.test(r.sticky) && /返事/.test(r.sticky), JSON.stringify({ a, r })); return r.sticky.replace(/\n/g, ' ')
 })
-await t('チュートリアル: 押さえて連打 → 寝たふり → 1日が始まる', async () => {
-  const r = await q.evaluate(() => {
-    okan.dbg.step(60 * 6.5); okan.choose('hold'); okan.dbg.step(10)
-    for (let i = 0; i < 16; i++) { okan.tap(); okan.dbg.step(8) }
-    okan.dbg.step(60 * 3); const s1 = okan.state.id
-    okan.dbg.step(60 * 6.5); okan.choose('sleep'); okan.dbg.step(60 * 2.5); okan.dbg.step(60 * 2.5)
-    return { s1, s: okan.state, tut: localStorage.getItem('okan_tut') }
-  })
-  expect(r.s1 === 'knock_peek' && r.s.mode === 'play' && !r.s.tut && r.tut === '1' && r.s.hour >= 7 && r.s.hour < 7.6, JSON.stringify(r))
+await t('案内: ガチャガチャ→押さえて連打 → のぞき→寝たふり → 鍵→隠れる → 1日が始まる', async () => {
+  const hints = []
+  await q.evaluate(() => okan.dbg.step(60 * 3)); await toTell(q, 0.8); hints.push(await q.evaluate(() => document.getElementById('hint').textContent))
+  await press(q, '#dHold'); await q.evaluate(() => okan.dbg.step(40)); hints.push(await q.evaluate(() => document.getElementById('hint').textContent))
+  for (let i = 0; i < 10; i++) { await press(q, '#dHold'); await q.evaluate(() => okan.dbg.step(8)) }
+  await q.evaluate(() => okan.dbg.step(60 * 3)); await toTell(q, 0.8); hints.push(await q.evaluate(() => document.getElementById('hint').textContent)); const s1 = await q.evaluate(() => okan.state.id)
+  await press(q, '#dSleep'); await q.evaluate(() => okan.dbg.step(60 * 3.4)); await toTell(q, 0.8); hints.push(await q.evaluate(() => document.getElementById('hint').textContent)); const s2 = await q.evaluate(() => okan.state.id)
+  await press(q, '#dHide'); await q.evaluate(() => okan.dbg.step(60 * 3.4)); await q.evaluate(() => okan.dbg.step(60 * 2.2))
+  const r = await q.evaluate(() => ({ s: okan.state, tut: localStorage.getItem('okan_tut2') }))
+  expect(hints.join() === 'ガチャガチャは押さえる,連打して押し返せ,のぞかれたら寝たふり,鍵が刺さったら隠れる' && s1 === 'peek' && s2 === 'key' && r.s.mode === 'play' && !r.s.tut && r.tut === '1' && r.s.score === 0 && r.s.breach === 0, JSON.stringify({ hints, s1, s2, r })); return hints
 })
 await t('文字は同時に2つまで・画面の外に出ない（1日を通して）', async () => {
   await q.addScriptTag({ content: BOT })
-  const r = await q.evaluate(() => { okan.dbg.G.bot = window.BOTS.reader; let max = 0, out = 0, n = 0; while (okan.state.mode === 'play' && n < 60 * 200) { okan.dbg.step(6); n += 6; const vis = ['bubble', 'hbubble', 'stamp', 'hint'].map(id => document.getElementById(id)).filter(e => !e.hidden); max = Math.max(max, vis.length); for (const e of vis) { const b = e.getBoundingClientRect(); if (b.left < 0 || b.right > innerWidth + 1 || b.top < 0 || b.bottom > innerHeight) out++ } } return { max, out, mode: okan.state.mode, score: okan.state.score } })
+  const r = await q.evaluate(() => { okan.dbg.G.bot = window.BOTS.reader; let max = 0, out = 0, n = 0; while (okan.state.mode === 'play' && n < 60 * 200) { okan.dbg.step(6); n += 6; const vis = ['bubble', 'hbubble', 'sticky', 'hint'].map(id => document.getElementById(id)).filter(e => !e.hidden); max = Math.max(max, vis.length); for (const e of vis) { const b = e.getBoundingClientRect(); if (b.left < 0 || b.right > innerWidth + 1 || b.top < 0 || b.bottom > innerHeight) out++ } } return { max, out, mode: okan.state.mode, score: okan.state.score } })
   expect(r.max <= 2 && r.out === 0 && r.mode === 'end', JSON.stringify(r)); return r
 })
 await t('夜: おにぎりとメモ → 連絡ノート（結果）', async () => {
@@ -175,34 +194,78 @@ await q.close()
 const g = await open(browser, {}, '?notut=1')
 await g.addScriptTag({ content: BOT })
 await t('何もしない日は最低の称号・守り切り失敗', async () => {
-  const r = await g.evaluate(() => { const x = okan.simRun(window.BOTS.none, 77); return { x, title: okan.OD.TITLES[okan.OD.TITLES.length - 1][1][0] } })
-  expect(r.x.score < 8 && r.x.breach > 2, JSON.stringify(r.x))
+  const r = await g.evaluate(() => okan.simRun(window.BOTS.none, 77))
+  expect(r.score < 6 && r.breach > 2, JSON.stringify(r))
 })
-await t('押さえ続けると腕が限界（4回目で入られる）', async () => {
-  const r = await g.evaluate(() => { const x = okan.simRun(window.BOTS.hold, 91); return x.log.slice(0, 6).map(l => l.kind + ':' + l.how) })
-  expect(r.some(s => s.startsWith('breach')), r.join(','))
+await t('いつも押さえる・でたらめは読む人より10点以上低い', async () => {
+  const r = await g.evaluate(() => ({ reader: okan.simRun(window.BOTS.reader, 91).score, muted: okan.simRun(window.BOTS.muted, 91).score, hold: okan.simRun(window.BOTS.hold, 91).score, random: okan.simRun(window.BOTS.random, 91).score }))
+  expect(r.reader >= 27 && r.muted >= 27 && r.hold <= r.reader - 10 && r.random <= r.reader - 10, JSON.stringify(r)); return r
 })
-await t('寝たふりを3回続けると心配されて入られる', async () => {
-  const r = await g.evaluate(() => { const x = okan.simRun(window.BOTS.sleep, 91); return x.log.map(l => l.how) })
-  expect(r.includes('sleep3'), r.join(','))
-})
-await t('ばあちゃんは入られても数えない', async () => {
-  const r = await g.evaluate(() => { okan.dbg.pause(); document.getElementById('bStart').click(); okan.dbg.force(['granny']); okan.dbg.step(60 * 7); okan.choose('hold'); okan.dbg.step(60 * 2); return okan.state })
-  expect(r.granny === 1 && r.breach === 0, JSON.stringify(r))
-})
-await t('押し合い: 速く連打すると守れる・連打しないと入られる', async () => {
-  const r = await g.evaluate(() => {
-    const run = rate => { okan.dbg.force(['vacuum']); okan.dbg.G.F = 0; let n = 0; while (!(okan.state.phase === 'approach' && okan.state.t > 2.6) && n++ < 900) okan.dbg.step(1); okan.choose('hold'); while (okan.state.phase !== 'push' && n++ < 1800) okan.dbg.step(1); const b0 = okan.state.breach; let acc = 0; while (okan.state.phase === 'push' && n++ < 3000) { acc += rate / 60; if (acc >= 1) { acc -= 1; okan.tap() } okan.dbg.step(1) } return okan.state.breach - b0 }
-    return { fast: run(6), slow: run(1.5) }
+await press(g, '#bStart')
+await g.evaluate(() => okan.dbg.pause())
+for (const [id, want, label] of [['vacuum', 'hold', 'ガチャガチャ'], ['peek', 'sleep', 'すき間から目'], ['knock', 'reply', 'ノックだけ'], ['key', 'hide', '鍵穴に鍵']]) {
+  await t(`印「${label}」: カメラが寄り、書き文字が大きく画面内・時計の赤が見える`, async () => {
+    await g.evaluate(id => { okan.dbg.G.breach = 0; okan.dbg.force([id], 3) }, id); await toTell(g, 0.9)
+    const r = await g.evaluate(() => okan.dbg.tellScreen())
+    expect(r.camK === 1 && r.ono && r.ono.w >= r.W * 0.4 && r.ono.x - r.ono.w / 2 > -r.W * 0.1 && r.ono.x + r.ono.w / 2 < r.W * 1.05 && r.ono.y > 40 && r.ono.y < r.H - 140 && r.clock.x < r.W - 10 && r.clock.y > 0, JSON.stringify(r)); return { ono: r.ono, clock: r.clock }
   })
+  await t(`印「${label}」: 正しいボタン（${want}）で守れて、付箋に印と答え`, async () => {
+    await press(g, BTN[want]); await g.evaluate(() => okan.dbg.step(30))
+    if (want === 'hold') { for (let i = 0; i < 16; i++) { await press(g, '#dHold'); await g.evaluate(() => okan.dbg.step(9)) } }
+    await g.evaluate(() => okan.dbg.step(30))
+    const r = await g.evaluate(() => ({ s: okan.state, st: document.getElementById('sticky').innerText }))
+    expect(r.s.phase === 'react' && r.s.breach === 0 && r.st.includes(label) && r.st.includes('守った'), JSON.stringify(r)); return r.st.replace(/\n/g, ' ')
+  })
+  await t(`印「${label}」: 違うボタンだと入られて、付箋に同じ印と正しい答え`, async () => {
+    await g.evaluate(id => { okan.dbg.G.breach = 0; okan.dbg.force([id], 3) }, id); await toTell(g, 0.9)
+    const wrong = want === 'reply' ? 'hide' : 'reply'
+    await press(g, BTN[wrong]); await g.evaluate(() => okan.dbg.step(60))
+    const r = await g.evaluate(() => ({ s: okan.state, st: document.getElementById('sticky').innerText }))
+    expect(r.s.breach === 1 && r.st.includes(label) && r.st.includes('入られた'), JSON.stringify(r)); return r.st.replace(/\n/g, ' ')
+  })
+}
+await t('うその台詞（「外にパンダおるで」でも鍵が刺さる）: 印で守れる', async () => {
+  await g.evaluate(() => { okan.dbg.G.breach = 0; okan.dbg.force(['key'], 8, { line: ['外にパンダおるで', "There's a panda outside."] }) }); await toTell(g, 0.9)
+  const b = await g.evaluate(() => document.getElementById('bubble').textContent)
+  await press(g, '#dHide'); await g.evaluate(() => okan.dbg.step(60))
+  const r = await g.evaluate(() => okan.state)
+  expect(b === '外にパンダおるで' && r.breach === 0 && r.perfect >= 1, JSON.stringify({ b, r }))
+})
+await t('時間切れ（何も押さない）は「間に合わず」で入られる', async () => {
+  await g.evaluate(() => { okan.dbg.G.breach = 0; okan.dbg.force(['knock'], 2) }); await toTell(g, 0.1)
+  const w = await g.evaluate(() => okan.state.win)
+  await g.evaluate(w => okan.dbg.step(Math.ceil(60 * (w + 0.3))), w)
+  const r = await g.evaluate(() => ({ s: okan.state, st: document.getElementById('sticky').innerText }))
+  expect(w >= 3.5 && r.s.breach === 1 && r.st.includes('間に合わず') && r.st.includes('ノックだけ'), JSON.stringify({ w, r }))
+})
+await t('夜は選べる時間が短い（朝4.0秒→夜2.2秒）', async () => {
+  const r = await g.evaluate(() => { okan.dbg.force(['knock'], 10); return okan.state.win })
+  expect(Math.abs(r - 2.2) < 0.01, r)
+})
+await t('ばあちゃんは何をしても入るが数えない（付箋にみかん）', async () => {
+  await g.evaluate(() => { okan.dbg.G.breach = 0; okan.dbg.G.granny = 0; okan.dbg.force(['granny'], 5) }); await toTell(g, 0.3)
+  await press(g, '#dHold'); await g.evaluate(() => okan.dbg.step(60 * 1.5))
+  const r = await g.evaluate(() => ({ s: okan.state, cls: document.getElementById('sticky').className }))
+  expect(r.s.granny === 1 && r.s.breach === 0 && /mikan/.test(r.cls), JSON.stringify(r))
+})
+await t('押し合い: 速く連打すると守れる・連打しないと入られる（本物の指で）', async () => {
+  const run = async (every) => {
+    await g.evaluate(() => { okan.dbg.G.breach = 0; okan.dbg.force(['vacuum'], 3) }); await toTell(g, 0.9)
+    await press(g, '#dHold'); await g.evaluate(() => okan.dbg.step(30))
+    let n = 0; while ((await g.evaluate(() => okan.state.phase)) === 'push' && n++ < 80) { await press(g, '#dHold'); await g.evaluate(k => okan.dbg.step(k), every) }
+    return g.evaluate(() => okan.state.breach)
+  }
+  const r = { fast: await run(9), slow: await run(40) }
   expect(r.fast === 0 && r.slow === 1, JSON.stringify(r))
 })
 await t('入られるとドアに付箋が増える', async () => { const r = await g.evaluate(() => okan.dbg.G.breach); expect(r >= 1, r) })
+await t('判定のあとも Chromium は無音', async () => { const r = await g.evaluate(() => window.__muteOk()); expect(r, r) })
+await t('判定のあいだエラーなし', async () => { expect(g.errs.length === 0, g.errs.join('|')) })
 await g.close()
 // ---- 英語
 const e = await open(browser, { locale: 'en-US' }, '?notut=1')
 await t('英語: 端末が英語ならタイトル・ボタン・台詞が英語', async () => {
-  const r = await e.evaluate(() => { document.getElementById('bStart').click(); okan.dbg.pause(); okan.dbg.force(['knock']); okan.dbg.step(60 * 3.2); okan.dbg.render(); return { t: document.getElementById('t2').textContent, b: document.querySelector('#dHold span').textContent, bub: document.getElementById('bubble').textContent, lang: document.documentElement.lang } })
+  const r = await e.evaluate(() => { document.getElementById('bStart').click(); okan.dbg.pause(); okan.dbg.force(['knock']); let k = 0; while (!(okan.state.phase === 'tell' && okan.state.t > 0.5) && k++ < 900) okan.dbg.step(1); okan.dbg.render(); return { t: document.getElementById('t2').textContent, b: document.querySelector('#dHold span').textContent, bub: document.getElementById('bubble').textContent, lang: document.documentElement.lang } })
   expect(r.t === 'Out of My Room' && r.b === 'Hold' && /[a-z]/i.test(r.bub) && !/[ぁ-ん]/.test(r.bub) && r.lang === 'en', JSON.stringify(r)); return r
 })
 await e.screenshot({ path: `${ROOT}/shots/en-play.png` })
@@ -220,17 +283,18 @@ await t('ミュート: 押すと切れて、次に開いても切れたまま', 
   const b = await m.evaluate(() => ({ off: document.getElementById('bMute').classList.contains('off'), muted: Snd.muted }))
   expect(a.off && a.s === '1' && b.off && b.muted, JSON.stringify({ a, b }))
 })
-await t('遊び方: プライバシーへのリンク（38px以上）とクレジット', async () => {
-  await m.click('#bHow'); const r = await m.evaluate(() => { const a = document.getElementById('lPrivacy'), b = a.getBoundingClientRect(); return { h: b.height, href: a.getAttribute('href'), credit: document.getElementById('howCredit').textContent, items: document.querySelectorAll('#howList li').length } })
-  expect(r.h >= 38 && r.href === 'privacy.html' && /CC BY/.test(r.credit) && r.items === 6, JSON.stringify(r))
+await t('遊び方: 印の絵→ボタンの絵の表が4行・プライバシーへのリンク（38px以上）とクレジット', async () => {
+  await m.click('#bHow'); const r = await m.evaluate(() => { const a = document.getElementById('lPrivacy'), b = a.getBoundingClientRect(); return { h: b.height, href: a.getAttribute('href'), credit: document.getElementById('howCredit').textContent, items: document.querySelectorAll('#howList li').length, svgs: document.querySelectorAll('#howList svg').length } })
+  expect(r.h >= 38 && r.href === 'privacy.html' && /CC BY/.test(r.credit) && r.items === 4 && r.svgs === 8, JSON.stringify(r))
 })
 await m.close()
 // ---- 3サイズ × 全画面で一画面
 for (const [w, h, name] of [[360, 640, 'small'], [390, 844, 'phone'], [430, 932, 'max']]) {
   const v = await open(browser, { viewport: { width: w, height: h } })
-  const { views, tx } = await visit(v, name)
+  const { views, tx, tx2, ts } = await visit(v, name)
   for (const [k, r] of Object.entries(views)) await t(`一画面に収まる ${name} ${w}x${h} ${k}`, async () => { expect(!r.over.length, JSON.stringify(r)) })
-  await t(`${name}: 遊び中の文字が画面内・2つまで`, async () => { expect(tx.n <= 2 && !tx.out.length, JSON.stringify(tx)) })
+  await t(`${name}: 遊び中の文字が画面内・2つまで（印の時と答え合わせの時）`, async () => { expect(tx.n <= 2 && !tx.out.length && tx2.n <= 2 && tx2.n >= 1 && !tx2.out.length, JSON.stringify({ tx, tx2 })) })
+  await t(`${name}: 印の書き文字が画面幅の4割以上・時計が画面内`, async () => { expect(ts.ono && ts.ono.w >= ts.W * 0.4 && ts.clock.x < ts.W - 10, JSON.stringify(ts)); return { w: ts.ono.w, W: ts.W } })
   await t(`${name}: はみ出し・エラーなし`, async () => { const o = await overflow(v); expect(o.sw <= o.W && !o.bad.length && !v.errs.length, JSON.stringify(o) + v.errs.join('|')) })
   await v.close()
 }
@@ -240,7 +304,7 @@ await browser.close()
 const wb = await webkit.launch()
 for (const [w, h, name] of [[360, 640, 'small'], [390, 844, 'phone'], [430, 932, 'max']]) {
   const wp = await open(wb, { viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })
-  const { views } = await visit(wp, 'wk-' + name)
+  const { views } = await visit(wp, 'wk-' + name, true)
   for (const [k, r] of Object.entries(views)) await t(`WebKit 一画面 ${name} ${k}`, async () => { expect(!r.over.length, JSON.stringify(r)) })
   await t(`WebKit ${name}: エラーなし`, async () => { expect(wp.errs.length === 0, wp.errs.join('|')) })
   await wp.close()
@@ -250,9 +314,9 @@ await t('WebKit: 2本指の touchmove を止める', async () => {
   const r = await wp.evaluate(() => { const e = new Event('touchmove', { cancelable: true, bubbles: true }); Object.defineProperty(e, 'touches', { value: [{}, {}] }); document.body.dispatchEvent(e); return e.defaultPrevented })
   expect(r, r)
 })
-await t('WebKit: タップで遊べる（守り方を選ぶ）', async () => {
-  await wp.tap('#bStart'); await wp.evaluate(() => { okan.dbg.pause(); okan.dbg.force(['knock']); okan.dbg.step(60 * 3) })
-  await wp.tap('#dReply'); const r = await wp.evaluate(() => okan.state.def); expect(r === 'reply', r)
+await t('WebKit: タップで遊べる（印が出たら返事を指で押す）', async () => {
+  await press(wp, '#bStart', true); await wp.evaluate(() => { okan.dbg.pause(); okan.dbg.force(['knock']) }); await toTell(wp, 0.6)
+  await press(wp, '#dReply', true); const r = await wp.evaluate(() => okan.state.def); expect(r === 'reply', r)
 })
 await t('WebKit: 実際には無音（タップで始めたあと）', async () => { const r = await wp.evaluate(() => window.__muteOk()); expect(r, r) })
 await t('WebKit: エラーなし', async () => { expect(wp.errs.length === 0, wp.errs.join('|')) })
