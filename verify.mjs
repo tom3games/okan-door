@@ -181,7 +181,7 @@ await t('結果: Xでポスト（本文に URL を入れず url パラメータ�
 await t('結果: 画像を保存でダウンロードされる', async () => { const [d] = await Promise.all([q.waitForEvent('download', { timeout: 5000 }), q.click('#bSave')]); expect(/okan-door\.png/.test(d.suggestedFilename()), d.suggestedFilename()) })
 await t('結果: 支援リンク（おにぎり）と もう一回 が押せる', async () => {
   const r = await q.evaluate(() => { const s = document.getElementById('tmSupport'), a = document.getElementById('bAgain'); return { s: s && s.textContent, h: s && s.getBoundingClientRect().height, again: a.textContent } })
-  expect(r.s === '作者におにぎりをおごる（任意）' && r.h >= 30 && r.again === 'もう一回', JSON.stringify(r))
+  expect(r.s === '作者におにぎりをおごる' && r.h >= 30 && r.again === 'もう一回', JSON.stringify(r))
   await q.click('#bAgain'); const s = await q.evaluate(() => okan.state); expect(s.mode === 'play' && s.i === 0 && s.score === 0, JSON.stringify(s))
 })
 await t('音: 録音素材が鳴る呼び出しがある（鳴らさず回数で見る）・実際は無音', async () => {
