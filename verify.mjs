@@ -105,7 +105,7 @@ await t('OGP 一式があり og.png が 1200x630', async () => {
     const img = new Image(); img.src = 'og.png'; await img.decode()
     return { tags, card, w: img.naturalWidth, h: img.naturalHeight }
   })
-  expect(r.tags.every(Boolean) && r.card === 'summary_large_image' && r.w === 1200 && r.h === 630 && /tom3games\.github\.io\/okan-door\//.test(r.tags[3]), JSON.stringify(r))
+  expect(r.tags.every(Boolean) && r.card === 'summary_large_image' && r.w === 1200 && r.h === 630 && /tom3games\.com\/play\/okan-door\//.test(r.tags[3]), JSON.stringify(r))
 })
 await t('題と OGP に本人を笑う言い方が無い', async () => {
   const html = readFileSync(ROOT + '/index.html', 'utf8') + readFileSync(ROOT + '/data.js', 'utf8')
