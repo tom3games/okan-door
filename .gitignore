@@ -3,3 +3,8 @@ node_modules
 shots/
 art/logs/
 art/raw/
+# 絵づくりの手元ファイル（公開物に入れない）
+art/prompts/
+art/gen*.sh
+art/wave*.sh
+art/mkprompts.mjs

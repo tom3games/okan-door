@@ -61,8 +61,8 @@
 - snd/snore.mp3: File:Snoring of old man.ogg / Saaabaaato / CC0（5秒に切った）
 
 ## 人物と絵
-- img/h_*.webp, m_*.webp（m_vacuum と m_down を除く）, dad.webp, grandma.webp, onigiri.webp, mikan.webp, sticky.webp: このゲームのために画像生成で作った架空の人物と小道具（art/prompts がプロンプト、art/key.py が切り抜き。おかんの顔は kobito-vs-okan のおかんを参照に渡した）
-- img/m_vacuum.webp, m_down.webp, cat.webp: kobito-vs-okan から流用（同じく画像生成）
+- img/h_*.webp, m_*.webp（m_vacuum と m_down を除く）, dad.webp, grandma.webp, onigiri.webp, mikan.webp, sticky.webp: このゲームのために作った架空の人物と小道具（art/key.py が切り抜き。おかんの顔は kobito-vs-okan のおかんに合わせた）
+- img/m_vacuum.webp, m_down.webp, cat.webp: kobito-vs-okan から流用
 - 部屋（床・壁・ドア・ベッド・テレビ）はコードで作った形とテクスチャ
 - js/look.js: tom3games の共通部品
 - vendor/three*.min.js: three.js（MIT）
